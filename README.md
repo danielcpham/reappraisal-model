@@ -1,9 +1,23 @@
 # Linguistic Distancing Model 
 
-## Running: 
+## __Algorithm__:
+- Explanation of the Algorithm 
 
-Running the algorithm is as easy as running the analysis file (under development)
+## __Running__: 
 
+To run the algorithm, call the following in terminal while in the repository's main directory:
 ```shell
-python test.py
+python model
 ```
+### Additional Arguments:
+- ```-f ``` - Far Away Analysis
+- ```-o ``` - Objectivity Analysis
+- ```-v ``` : verbose
+
+## __Future Updates__:
+- Set logging level with -v and a number 
+- Ability to specify training data
+- Ability to specify testing data
+- Synonym support 
+- Sentiment Analysis as a token extension
+

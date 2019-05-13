@@ -14,8 +14,7 @@ from spacy_wordnet.wordnet_annotator import WordnetAnnotator
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 
 sentiment = SentimentIntensityAnalyzer()
-# verbose_print = lambda *a, **k: None
-# verbose_print = print if verbose else lambda *a, **k: None
+
 
 
 FORMAT = '%(asctime)-15s: %(message)s'
@@ -51,11 +50,11 @@ class Model:
         else:
             raise Exception("Please use either 'f' for Spatial Analysis or 'o' for Objective Analysis")
         self.df.columns = ['Response', 'Score']
-        for word in STOP_WORDS:
-            ### Initialize stop words.
-            for w in (word, word[0].capitalize(), word.upper()):
-                lex = self.nlp.vocab[w]
-                lex.is_stop = True
+        # for word in STOP_WORDS:
+        #     ### Initialize stop words.
+        #     for w in (word, word[0].capitalize(), word.upper()):
+        #         lex = self.nlp.vocab[w]
+        #         lex.is_stop = True
         self.data = []
         logging.debug("Model Initialized")
 
@@ -70,7 +69,7 @@ class Model:
             ### Add the tagged score to the data, ignoring stop words and punctuation
             for token in doc:
                 # print(doc._.polarity_scores)
-                if not token.is_stop and token.tag_ not in ['.', ',']: 
+                if not token.is_punct: 
                     # print(token._.wordnet.synsets())
                     tagged_response.append((token.tag_,token.lemma_, 0))
             ### Add the tagged response to the dataset
@@ -100,7 +99,7 @@ class Model:
         scored_sentence = []
         for token in doc:
             score = 0
-            if not (token.is_stop or token.is_punct):
+            if not  token.is_punct:
                 category_match = self.reappStrategy.classifier(token.lemma_, token.tag_)
                 if token.tag_ in self.wordtag_scores:
                     logging.debug("Tag {0} exists in scoring bank".format(token.tag_))
@@ -263,7 +262,7 @@ def extrapolate_data(filename):
 
 def polarity(token):
     sentiment_analyzer = sentiment
-    if not (token.is_stop or token.is_punct):
+    if not token.is_punct:
         return sentiment.polarity_scores(token.text) 
 
 

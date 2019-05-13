@@ -20,14 +20,13 @@ def main():
         else:
             raise(Exception("Invalid Argument: {0}".format(arg)))
     cwd = os.getcwd()
-
     data = pd.DataFrame(columns = ['Text Response', "Objectivity Score", "Far Away Score"])
-    for filename in os.listdir(cwd + "\input"):
-        data = pd.concat([data, reappraisal.extrapolate_data(cwd + "\input\\" + filename)], axis = 0)
+    for filename in os.listdir(cwd + "\input\\training"):
+        data = pd.concat([data, reappraisal.extrapolate_data(cwd + "\input\\training\\" + filename)], axis = 0)
     if not strat:
         strat = input("Press f to initiate a far-away model. Press o to initiate an objectivity model.  ")
     model = reappraisal.Model(data, strat, verbose)
     model.fit()
-    model.predict("I love Calpurnia.")
+    model.predict("I really love her.")
 
 main()

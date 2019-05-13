@@ -4,6 +4,7 @@ from abc import ABCMeta
 import pandas
 import pickle
 
+import os
 
 farAwayFlag = 'spatiotemp'
 objectiveFlag = 'obj'
@@ -22,8 +23,8 @@ def read_liwc_dictionary(filename):
     #     wordbank[bank] = map(lambda x: x.decode().encode('ascii'), wordbank[bank])
     return wordbank
 
-
-wordbank = read_liwc_dictionary('C:\\Users\\palad\\Desktop\\T-SCAN (3.7)\\data\\Wordbank - LIWC2007.xlsx')
+cwd = os.getcwd()
+wordbank = read_liwc_dictionary(cwd + "\input\data\Wordbank - LIWC2007.xlsx")
 
 
 # ###Pickle Functions

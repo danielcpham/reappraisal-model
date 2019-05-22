@@ -26,17 +26,23 @@ import os
 
 
 
-def verboseprint(*args, **kwargs): 
-    args = list(args)
-    if True in args:
-        args.pop(True)
-        print(*args, **kwargs)
-    # if "verbose" in kwargs:
-    #     if kwargs['verbose']:
-    #         kwargs.pop('verbose')
-    #         print(*args, **kwargs)
-    # for kw in kwargs.items():
-    #     print(kw)
-    # print(*args, **kwargs)
+# def verboseprint(*args, **kwargs): 
+#     args = list(args)
+#     if True in args:
+#         args.pop(True)
+#         print(*args, **kwargs)
+#     # if "verbose" in kwargs:
+#     #     if kwargs['verbose']:
+#     #         kwargs.pop('verbose')
+#     #         print(*args, **kwargs)
+#     # for kw in kwargs.items():
+#     #     print(kw)
+#     # print(*args, **kwargs)
 
-verboseprint("Hello", True)
+# verboseprint("Hello", True)
+
+import spacy 
+try:
+    spacy.load("de_core_news_sm")
+except OSError:
+    print('hello')

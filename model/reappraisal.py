@@ -28,6 +28,7 @@ class Model:
             logging.basicConfig(level=logging.INFO, format=FORMAT)
         logging.info("Verbose Logging Enabled")
         logging.info("Model Created")
+        
         ### Class variable initialization
         self.wordtag_scores = {}
         self.weights = {}

@@ -24,7 +24,7 @@ def read_liwc_dictionary(filename):
     return wordbank
 
 cwd = os.getcwd()
-wordbank = read_liwc_dictionary(cwd + "\input\data\Wordbank - LIWC2007.xlsx")
+wordbank = read_liwc_dictionary(cwd + "/input/data/WordBank - LIWC2007.xlsx")
 
 
 # ###Pickle Functions

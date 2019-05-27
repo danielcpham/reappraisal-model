@@ -9,13 +9,11 @@ import logging
 import spacy 
 from spacy.lang.en.stop_words import STOP_WORDS
 from spacy.tokens import Doc, Token
-from spacy_wordnet.wordnet_annotator import WordnetAnnotator 
+# from spacy_wordnet.wordnet_annotator import WordnetAnnotator 
 
+##TODO: sentiment after scoring entire sentence instead of scoring entire word?? 
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
-
 sentiment = SentimentIntensityAnalyzer()
-
-
 
 FORMAT = '%(asctime)-15s: %(message)s'
 
@@ -24,9 +22,9 @@ class Model:
     def __init__(self, df, strat = 'o', verbose = False):
         if verbose:
             logging.basicConfig(level=logging.DEBUG, format=FORMAT)
+            logging.debug("Verbose Logging Enabled")
         else:
             logging.basicConfig(level=logging.INFO, format=FORMAT)
-        logging.info("Verbose Logging Enabled")
         logging.info("Model Created")
         
         ### Class variable initialization
@@ -38,7 +36,7 @@ class Model:
 
     
         #TODO: replace wordnet with spacy synonyms
-        self.nlp.add_pipe(WordnetAnnotator(self.nlp.lang), 'synsets', after='tagger')
+        # self.nlp.add_pipe(WordnetAnnotator(self.nlp.lang), 'synsets', after='tagger')
 
         if strat == 'f':
             self.df = df[['Text Response', 'Far Away Score']]
@@ -47,7 +45,6 @@ class Model:
             self.df = df[['Text Response', 'Objectivity Score']]
             self.reappStrategy = data_process.reappStrategyFactory('obj')
             ### Initialize sentiment analysis 
-            Token.set_extension("polarity", getter=polarity)
         else:
             raise Exception("Please use either 'f' for Spatial Analysis or 'o' for Objective Analysis")
         self.df.columns = ['Response', 'Score']
@@ -69,9 +66,7 @@ class Model:
             tagged_response = []
             ### Add the tagged score to the data, ignoring stop words and punctuation
             for token in doc:
-                # print(doc._.polarity_scores)
                 if not token.is_punct: 
-                    # print(token._.wordnet.synsets())
                     tagged_response.append((token.tag_,token.lemma_, 0))
             ### Add the tagged response to the dataset
             self.data.append((tagged_response, score))
@@ -96,11 +91,12 @@ class Model:
         doc = self.nlp(text)
         scored_sentence = []
         for token in doc:
+            print(token)
             score = 0
             if not  token.is_punct:
                 category_match = self.reappStrategy.classifier(token.lemma_, token.tag_)
                 if token.tag_ in self.wordtag_scores:
-                    logging.debug(f"Tag {token.tag_} exists in scoring bank")
+                    # logging.debug(f"Tag {token.tag_} exists in scoring bank")
                     if token.lemma_ in self.wordtag_scores[token.tag_]:
                         ### Word found in bank
                         logging.debug(f"WordTag ({token.lemma_},{token.tag_}) exists in scoring bank")
@@ -117,7 +113,7 @@ class Model:
                     if self.strat == "o":
                         ### TODO: sentiment analysis
                         score = score
-                        print(token.lemma_, token._.polarity)
+                        # print(token.lemma_, token._.polarity)
                 print(token.lemma_, token.tag_, score)
 
             ### Add the token and the score to the scored list. 

@@ -33,7 +33,8 @@ def main():
     for filename in os.listdir(cwd + "/input/test"):
         test_data = pd.concat([test_data, reappraisal.extrapolate_data(cwd + "/input/training/" + filename)], axis = 0)
     # TODO: for row of test data, model.predict(test_text_response)
-    
+    #rando change
+
 
 
 

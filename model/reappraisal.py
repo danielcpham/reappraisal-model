@@ -83,16 +83,13 @@ class Model:
             weights, score_list = self.fit_word_scores(response, score)
             full_score_list.append(score_list)
             weights_list.append((weights, score))
-            # print("FIT: {0}".format(weights))
 
         word_scores = self.get_scoring_bank(full_score_list)
         observed_weights = self.best_fit_weights(weights_list)
         
         self.weights = observed_weights
         self.wordtag_scores = word_scores
-        logging.info("Model Trained on {0} responses".format(len(self.df)))
-        # logging.debug(str(self.weights))
-        # logging.debug(str(self.wordtag_scores))
+        logging.info(f"Model trained on {len(self.df)} responses")
 
         
     def predict(self, text):
@@ -103,16 +100,14 @@ class Model:
             if not  token.is_punct:
                 category_match = self.reappStrategy.classifier(token.lemma_, token.tag_)
                 if token.tag_ in self.wordtag_scores:
-                    logging.debug("Tag {0} exists in scoring bank".format(token.tag_))
-
+                    logging.debug(f"Tag {token.tag_} exists in scoring bank")
                     if token.lemma_ in self.wordtag_scores[token.tag_]:
                         ### Word found in bank
-                        logging.debug("WordTag ({0},{1}) exists in scoring bank".format(token.lemma_, token.tag_))
-
+                        logging.debug(f"WordTag ({token.lemma_},{token.tag_}) exists in scoring bank")
                         score = self.wordtag_scores[token.tag_][token.lemma_]
                         if category_match:
                             ### TODO: Category score multiplier
-                            logging.debug("Categories {0}".format(category_match))
+                            logging.debug(f"Categories {category_match}")
                             score = score
                     else:
                         ### TODO: How to deal with words that aren't in the training data

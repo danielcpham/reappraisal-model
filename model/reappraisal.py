@@ -22,7 +22,6 @@ class Model:
     def __init__(self, df, strat = 'o', verbose = False):
         if verbose:
             logging.basicConfig(level=logging.DEBUG, format=FORMAT)
-            logging.debug("Verbose Logging Enabled")
         else:
             logging.basicConfig(level=logging.INFO, format=FORMAT)
         logging.info("Model Created")

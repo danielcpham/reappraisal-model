@@ -31,7 +31,7 @@ def main():
 
     test_data = pd.DataFrame(columns = ['Text Response', "Objectivity Score", "Far Away Score"])
     for filename in os.listdir(cwd + "/input/test"):
-        test_data = pd.concat([test_data, reappraisal.extrapolate_data(cwd + "/input/training/" + filename)], axis = 0)
+        test_data = pd.concat([test_data, reappraisal.extrapolate_data(cwd + "/input/test/" + filename)], axis = 0)
     # TODO: for row of test data, model.predict(test_text_response)
     #rando change
 

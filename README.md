@@ -14,6 +14,11 @@ All current dependencies (given that Python is installed on the device) can be i
 pip install xxx
 ```
 
+To install the models needed to run the algorithm, run the following in command:
+
+```
+python -m spacy download en_core_web_sm
+```
 
 ## __Running__: 
 

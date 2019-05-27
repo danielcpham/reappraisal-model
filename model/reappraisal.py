@@ -93,7 +93,7 @@ class Model:
         for token in doc:
             print(token)
             score = 0
-            if not  token.is_punct:
+            if not token.is_punct:
                 category_match = self.reappStrategy.classifier(token.lemma_, token.tag_)
                 if token.tag_ in self.wordtag_scores:
                     # logging.debug(f"Tag {token.tag_} exists in scoring bank")
@@ -107,7 +107,8 @@ class Model:
                             score = score
                     else:
                         ### TODO: How to deal with words that aren't in the training data
-                        ### TODO: Word sense distinguisher for synonyms 
+                        ### TODO: Word sense distinguisher for synonyms
+                        #  
                         ### TODO: look for semantically similar words 
                         score = 0
                     if self.strat == "o":

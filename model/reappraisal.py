@@ -66,7 +66,9 @@ class Model:
             ### Add the tagged score to the data, ignoring stop words and punctuation
             for token in doc:
                 if not token.is_punct: 
-                    tagged_response.append((token.tag_,token.lemma_, 0))
+                    word = token.lemma_ if token.lemma_ != "-PRON-" else token.text.lower()
+                    tag = token.tag_
+                    tagged_response.append((tag, word))
             ### Add the tagged response to the dataset
             self.data.append((tagged_response, score))
         logging.debug("Training Data Preprocessed")
@@ -77,7 +79,6 @@ class Model:
             weights, score_list = self.fit_word_scores(response, score)
             full_score_list.append(score_list)
             weights_list.append((weights, score))
-
         word_scores = self.get_scoring_bank(full_score_list)
         observed_weights = self.best_fit_weights(weights_list)
         
@@ -90,35 +91,34 @@ class Model:
         doc = self.nlp(text)
         scored_sentence = []
         for token in doc:
-            print(token)
+            word = token.lemma_ if token.lemma_ != "-PRON-" else token.text.lower()
+            tag = token.tag_
             score = 0
             if not token.is_punct:
-                category_match = self.reappStrategy.classifier(token.lemma_, token.tag_)
-                if token.tag_ in self.wordtag_scores:
-                    # logging.debug(f"Tag {token.tag_} exists in scoring bank")
-                    if token.lemma_ in self.wordtag_scores[token.tag_]:
+                logging.debug(f"({word},{tag})")
+                category_match = self.reappStrategy.classifier(word, tag)
+                if tag in self.wordtag_scores:
+                    if word in self.wordtag_scores[tag]:
                         ### Word found in bank
-                        logging.debug(f"WordTag ({token.lemma_},{token.tag_}) exists in scoring bank")
-                        score = self.wordtag_scores[token.tag_][token.lemma_]
+                        logging.debug(f"({word},{tag}) exists in scoring bank")
+                        score = self.wordtag_scores[tag][word]
                         if category_match:
                             ### TODO: Category score multiplier
-                            logging.debug(f"Categories {category_match}")
+                            logging.debug(f"({word},{tag}) Categories: {category_match}")
                             score = score
                     else:
                         ### TODO: How to deal with words that aren't in the training data
                         ### TODO: Word sense distinguisher for synonyms
-                        #  
                         ### TODO: look for semantically similar words 
                         score = 0
-                    if self.strat == "o":
-                        ### TODO: sentiment analysis
-                        score = score
-                        # print(token.lemma_, token._.polarity)
-                print(token.lemma_, token.tag_, score)
-
             ### Add the token and the score to the scored list. 
             scored_sentence.append((token.text, score))
-        return scored_sentence
+        logging.debug(scored_sentence)
+        if self.strat == "o":
+                ### TODO: sentiment analysis
+                pass
+        total_score = sum([score for word, score in scored_sentence])
+        return scored_sentence, total_score
 
     def standardize_weights(self, weights): 
         """ 
@@ -165,9 +165,11 @@ class Model:
         score_list = []
         weights = defaultdict(int)
         ### Score each word-tag pair based on the categories it fits in
-        for index in range(len(tagged_response)):
-            tag = tagged_response[index][0]
-            word = tagged_response[index][1]
+        # for index in range(len(tagged_response)):
+        #     breakpoint()
+        #     tag = tagged_response[index][0]
+        #     word = tagged_response[index][1]
+        for tag, word in tagged_response:
             ### Classify the word-tag pair based on the strategy used
             matched_categories = self.reappStrategy.classifier(word, tag)
             ### Separate positive and negative category matches 
@@ -210,6 +212,7 @@ class Model:
                 weights[category] *= abs(neg_score)
         ### Standardize the weights matrix to include all categories
         standard_weights = self.standardize_weights(dict(weights))
+        logging.debug(score_list)
         return standard_weights, score_list
            
     def best_fit_weights(self, weights_list):

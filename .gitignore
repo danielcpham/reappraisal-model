@@ -1,2 +1,5 @@
 # Don't track content of these folders
 model/__pycache__/
+.ipynb_checkpoints/Untitled-checkpoint.ipynb
+Untitled.ipynb
+model/.ipynb_checkpoints/__main__-checkpoint.py

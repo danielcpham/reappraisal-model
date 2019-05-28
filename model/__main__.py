@@ -10,7 +10,6 @@ import logging
 
 FORMAT = '%(asctime)-15s: %(message)s'
 
-
 def main():
     strat = None
     verbose = False
@@ -30,7 +29,7 @@ def main():
             logging.info("Objective Analysis Initialized")
 
         else:
-            raise(Exception("Invalid Argument: {0}".format(arg)))
+            raise(Exception(f"Invalid Argument: {arg}"))
 
     cwd = os.getcwd()
     data = pd.DataFrame(columns = ['Text Response', "Objectivity Score", "Far Away Score"])
@@ -61,6 +60,11 @@ def main():
         test_data.iloc[index, test_data.columns.get_loc('Observed Score')] = score
 
     test_data.to_excel(f"{cwd}/output/{strat}_test.xlsx")
+
+
+
+
+
 
 
 

@@ -3,3 +3,5 @@ model/__pycache__/
 .ipynb_checkpoints/Untitled-checkpoint.ipynb
 Untitled.ipynb
 model/.ipynb_checkpoints/__main__-checkpoint.py
+output/f_test.csv
+output/o_test.csv

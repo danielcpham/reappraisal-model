@@ -9,7 +9,6 @@ import logging
 import spacy 
 from spacy.lang.en.stop_words import STOP_WORDS
 from spacy.tokens import Doc, Token
-# from spacy_wordnet.wordnet_annotator import WordnetAnnotator 
 
 ##TODO: sentiment after scoring entire sentence instead of scoring entire word?? 
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
@@ -19,23 +18,18 @@ FORMAT = '%(asctime)-15s: %(message)s'
 
 
 class Model:
-    def __init__(self, df, strat = 'o', verbose = False):
+    def __init__(self, df: pd.DataFrame, strat = 'o', verbose = False):
         if verbose:
             logging.basicConfig(level=logging.DEBUG, format=FORMAT)
         else:
             logging.basicConfig(level=logging.INFO, format=FORMAT)
         logging.info("Model Created")
-        
         ### Class variable initialization
         self.wordtag_scores = {}
         self.weights = {}
         self.strat = strat
         self.nlp = spacy.load('en_core_web_md')
         logging.debug("spaCy Library Loaded")
-
-    
-        #TODO: replace wordnet with spacy synonyms
-        # self.nlp.add_pipe(WordnetAnnotator(self.nlp.lang), 'synsets', after='tagger')
 
         if strat == 'f':
             self.df = df[['Text Response', 'Far Away Score']]
@@ -47,11 +41,6 @@ class Model:
         else:
             raise Exception("Please use either 'f' for Spatial Analysis or 'o' for Objective Analysis")
         self.df.columns = ['Response', 'Score']
-        # for word in STOP_WORDS:
-        #     ### Initialize stop words.
-        #     for w in (word, word[0].capitalize(), word.upper()):
-        #         lex = self.nlp.vocab[w]
-        #         lex.is_stop = True
         self.data = []
         logging.debug("Model Initialized")
 
@@ -62,6 +51,7 @@ class Model:
             response, score = row['Response'].lower(), row['Score']
             ### Process using SpaCy
             doc = self.nlp(response)
+            logging.debug(f"Reading training sentence: {doc.text}")
             tagged_response = []
             ### Add the tagged score to the data, ignoring stop words and punctuation
             for token in doc:
@@ -81,13 +71,12 @@ class Model:
             weights_list.append((weights, score))
         word_scores = self.get_scoring_bank(full_score_list)
         observed_weights = self.best_fit_weights(weights_list)
-        
         self.weights = observed_weights
         self.wordtag_scores = word_scores
         logging.info(f"Model trained on {len(self.df)} responses")
 
         
-    def predict(self, text):
+    def predict(self, text: str):
         doc = self.nlp(text)
         scored_sentence = []
         for token in doc:
@@ -105,7 +94,8 @@ class Model:
                         if category_match:
                             ### TODO: Category score multiplier
                             logging.debug(f"({word},{tag}) Categories: {category_match}")
-                            score = score
+                            for category in category_match:
+                                score *= self.weights[category]
                     else:
                         ### TODO: How to deal with words that aren't in the training data
                         ### TODO: Word sense distinguisher for synonyms
@@ -120,7 +110,7 @@ class Model:
         total_score = sum([score for word, score in scored_sentence])
         return scored_sentence, total_score
 
-    def standardize_weights(self, weights): 
+    def standardize_weights(self, weights: dict): 
         """ 
         Standardizes the weights vector.
 
@@ -153,11 +143,10 @@ class Model:
             # print("SCORE DICTIONARY: {0}".format(score_dict))
             return score_dict
 
-    def fit_word_scores(self, tagged_response, score):
+    def fit_word_scores(self, tagged_response, score: float):
         """
         :param taggedResponse: the tagged response
         :param score: the score of the tagged response
-        :param reappStrategy: the strategy of reappraisal
         :return: dictionary of weights for each category, list of scores for each word
         """
         pos_list = []

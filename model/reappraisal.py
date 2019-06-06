@@ -9,10 +9,8 @@ import logging
 import spacy 
 from spacy.lang.en.stop_words import STOP_WORDS
 from spacy.tokens import Doc, Token
+from textblob import TextBlob
 
-##TODO: sentiment after scoring entire sentence instead of scoring entire word?? 
-from nltk.sentiment.vader import SentimentIntensityAnalyzer
-sentiment = SentimentIntensityAnalyzer()
 
 FORMAT = '%(asctime)-15s: %(message)s'
 
@@ -37,6 +35,12 @@ class Model:
         elif strat == 'o':
             self.df = df[['Text Response', 'Objectivity Score']]
             self.reappStrategy = data_process.reappStrategyFactory('obj')
+
+            # def get_sentiment(doc):
+            #     return TextBlob(doc.text).sentiment
+            Doc.set_extension("sentiment",
+            getter = lambda doc: TextBlob(doc.text).sentiment)
+
             ### Initialize sentiment analysis 
         else:
             raise Exception("Please use either 'f' for Spatial Analysis or 'o' for Objective Analysis")
@@ -51,7 +55,7 @@ class Model:
             response, score = row['Response'].lower(), row['Score']
             ### Process using SpaCy
             doc = self.nlp(response)
-            logging.debug(f"Reading training sentence: {doc.text}")
+            # logging.debug(f"Reading training sentence: {doc.text}")
             tagged_response = []
             ### Add the tagged score to the data, ignoring stop words and punctuation
             for token in doc:
@@ -59,6 +63,11 @@ class Model:
                     word = token.lemma_ if token.lemma_ != "-PRON-" else token.text.lower()
                     tag = token.tag_
                     tagged_response.append((tag, word))
+            if self.strat == "o":
+                logging.debug(f"Subjectivity = {doc._.sentiment.Subjectivity}")
+                ##TODO: what to do with sentiment
+                ## Subjectivity = 1.0
+                ## Objectivity = 0.0 
             ### Add the tagged response to the dataset
             self.data.append((tagged_response, score))
         logging.debug("Training Data Preprocessed")
@@ -97,16 +106,29 @@ class Model:
                             for category in category_match:
                                 score *= self.weights[category]
                     else:
-                        ### TODO: How to deal with words that aren't in the training data
-                        ### TODO: Word sense distinguisher for synonyms
-                        ### TODO: look for semantically similar words 
-                        score = 0
+                        ### Word not found in bank; search synonyms 
+                        # similar = most_similar(token)
+                        # sim_score = 0
+                        # count = 1
+                        # if similar:
+                        #     for synonym in similar:
+                        #         if synonym in self.wordtag_scores[tag]:
+                        #             ### Synonym found in the bank 
+                        #             count += 1
+                        #             logging.debug(f"Synonym For {word}: {synonym} -> {self.wordtag_scores[tag][synonym]}")
+                        #             sim_score += self.wordtag_scores[tag][synonym]
+                        #     sim_score /= count # Get the average of matching synonym scores 
+                        #     ### Save the result in the bank
+                        #     self.wordtag_scores[tag][word] = sim_score
+                        # score = sim_score
+                        pass
             ### Add the token and the score to the scored list. 
             scored_sentence.append((token.text, score))
         logging.debug(scored_sentence)
         if self.strat == "o":
-                ### TODO: sentiment analysis
-                pass
+            pass
+            # logging.info(f"Sentiment: {doc._.sentiment}")
+
         total_score = sum([score for word, score in scored_sentence])
         return scored_sentence, total_score
 
@@ -143,7 +165,7 @@ class Model:
             # print("SCORE DICTIONARY: {0}".format(score_dict))
             return score_dict
 
-    def fit_word_scores(self, tagged_response, score: float):
+    def fit_word_scores(self, tagged_response: list, score: float):
         """
         :param taggedResponse: the tagged response
         :param score: the score of the tagged response
@@ -201,7 +223,7 @@ class Model:
                 weights[category] *= abs(neg_score)
         ### Standardize the weights matrix to include all categories
         standard_weights = self.standardize_weights(dict(weights))
-        logging.debug(score_list)
+        # logging.debug(score_list)
         return standard_weights, score_list
            
     def best_fit_weights(self, weights_list):
@@ -244,10 +266,22 @@ def extrapolate_data(filename):
         df.columns = ['Text Response', "Objectivity Score", "Far Away Score"]
     return df
 
-def polarity(token):
-    sentiment_analyzer = sentiment
-    if not token.is_punct:
-        return sentiment.polarity_scores(token.text) 
+# def polarity(token):
+#     sentiment_analyzer = sentiment
+#     if not token.is_punct:
+#         return sentiment.polarity_scores(token.text) 
+
+def most_similar(token):
+    """Returns the 10 most similar words of the token. 
+    Arguments:
+        token {Token} -- Token to be searching for synonyms 
+    Returns:
+        list(str)-- string of synonyms for token
+    """
+    queries = [t for t in token.vocab if t.is_lower == token.is_lower and t.prob >= -15]
+    by_similarity = sorted(queries, key=lambda t: token.similarity(t), reverse=True)
+    return by_similarity[:np.minimum(10, len(by_similarity))]
+
 
 
     

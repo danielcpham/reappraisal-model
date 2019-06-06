@@ -14,27 +14,28 @@ from tkinter.filedialog import askopenfilename
 
 FORMAT = '%(asctime)-15s: %(message)s'
 
-strat = None
-verbose = False
-cwd = os.getcwd()
-logging.basicConfig(level=logging.INFO, format=FORMAT)
-
 def main():
+    strat = None
+    verbose = False
+    cwd = os.getcwd()
     for arg in sys.argv[1:]:
         if arg == "-v":
             verbose = True
-            if verbose:
-                logging.basicConfig(level=logging.DEBUG, format=FORMAT)
-                logging.debug("Verbose Logging Enabled")
         elif arg == "-f":
             strat = "f"
-            logging.info("Far Away Analysis Initialized")
         elif arg == "-o":
             strat = "o"
-            logging.info("Objective Analysis Initialized")
-
         else:
             raise(Exception(f"Invalid Argument: {arg}"))
+    if verbose:
+        logging.basicConfig(level=logging.DEBUG, format=FORMAT)
+        logging.debug("Verbose Logging Enabled")
+    else:
+        logging.basicConfig(level=logging.INFO, format=FORMAT)
+    if strat == 'f':
+        logging.info("Far Away Analysis Initialized")
+    if strat == 'o':
+        logging.info("Objective Analysis Initialized")
 
     # Read training data
     data = pd.DataFrame(columns = ['Text Response', "Objectivity Score", "Far Away Score"])
@@ -76,6 +77,5 @@ def main():
 
     # Test Data Analysis:
     logging.info(f"Correlation: {test_data['Observed Score'].corr(test_data['Expected Score'])}")
-    
-        
+      
 main()

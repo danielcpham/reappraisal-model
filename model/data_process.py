@@ -4,6 +4,7 @@ from abc import ABCMeta
 import pandas
 import pickle
 
+
 import os
 
 farAwayFlag = 'spatiotemp'
@@ -153,3 +154,4 @@ def reappStrategyFactory(strategyString):
         return ObjectiveStrategy()
     else:
         raise Exception("Incorrect Strategy")
+

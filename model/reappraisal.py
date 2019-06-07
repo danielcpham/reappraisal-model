@@ -11,6 +11,8 @@ from spacy.lang.en.stop_words import STOP_WORDS
 from spacy.tokens import Doc, Token
 from textblob import TextBlob
 
+from nltk.wsd import lesk
+from nltk.sentiment import vader
 
 FORMAT = '%(asctime)-15s: %(message)s'
 
@@ -64,7 +66,8 @@ class Model:
                     tag = token.tag_
                     tagged_response.append((tag, word))
             if self.strat == "o":
-                logging.debug(f"Subjectivity = {doc._.sentiment.Subjectivity}")
+                sentiment = doc._.sentiment
+                # logging.debug(f"Subjectivity = {sentiment.subjectivity}")
                 ##TODO: what to do with sentiment
                 ## Subjectivity = 1.0
                 ## Objectivity = 0.0 
@@ -107,21 +110,21 @@ class Model:
                                 score *= self.weights[category]
                     else:
                         ### Word not found in bank; search synonyms 
-                        # similar = most_similar(token)
-                        # sim_score = 0
-                        # count = 1
-                        # if similar:
-                        #     for synonym in similar:
-                        #         if synonym in self.wordtag_scores[tag]:
-                        #             ### Synonym found in the bank 
-                        #             count += 1
-                        #             logging.debug(f"Synonym For {word}: {synonym} -> {self.wordtag_scores[tag][synonym]}")
-                        #             sim_score += self.wordtag_scores[tag][synonym]
-                        #     sim_score /= count # Get the average of matching synonym scores 
-                        #     ### Save the result in the bank
-                        #     self.wordtag_scores[tag][word] = sim_score
-                        # score = sim_score
-                        pass
+                        synonyms = get_synonyms(text, word, tag)
+                        sim_score = 0
+                        count = 1
+                        if synonyms:
+                            logging.debug(f"Synonyms of {word}: {synonyms}")
+                            for synonym in synonyms:
+                                if synonym in self.wordtag_scores[tag]:
+                                    ### Synonym found in the bank 
+                                    count += 1
+                                    logging.debug(f"Synonym For {word}: {synonym} -> {self.wordtag_scores[tag][synonym]}")
+                                    sim_score += self.wordtag_scores[tag][synonym]
+                            sim_score /= count # Get the average of matching synonym scores 
+                            ### Save the result in the bank
+                            self.wordtag_scores[tag][word] = sim_score
+                        score = sim_score
             ### Add the token and the score to the scored list. 
             scored_sentence.append((token.text, score))
         logging.debug(scored_sentence)
@@ -183,15 +186,17 @@ class Model:
         for tag, word in tagged_response:
             ### Classify the word-tag pair based on the strategy used
             matched_categories = self.reappStrategy.classifier(word, tag)
+            synonyms = get_synonyms(list(map(lambda wordTag: wordTag[0], tagged_response)), word, tag)
             ### Separate positive and negative category matches 
-            for category in matched_categories:
-                if category in self.reappStrategy.posCategories:
-                    pos_list.append((word, tag))
-                    weights[category] += 1
-                if category in self.reappStrategy.negCategories:
-                    neg_list.append((word, tag))
-                    weights[category] += 1
-        ### Determine the correct positive/negative score based on the data. 
+            if len(matched_categories) != 0:
+                for category in matched_categories:
+                    if category in self.reappStrategy.posCategories:
+                        pos_list.append((word, tag))
+                        weights[category] += 1
+                    if category in self.reappStrategy.negCategories:
+                        neg_list.append((word, tag))
+                        weights[category] += 1
+            ### Determine the correct positive/negative score based on the data. 
         ### Only negative categories exist
         if len(pos_list) == 0:
             pos_score = 0
@@ -285,13 +290,42 @@ def most_similar(token):
 
 
     
-#TODO: add Synonym 
-#Lesk in Spacy https://sp1819.github.io/wordnet_spacy.pdf
-class Synonyms:
-    def __init__(self):
-        return 
+def convert_to_wordnet(tag):
+    """
+    :param tag: POS tag as defined by Penn Treebank
+    :return: POS tag for use in wordnet
+    """
+    if tag in {'NN', 'NNS', "NNP", 'NNPS', "n"}:
+        return 'n'
+    elif tag in {'VB', 'VBD', 'VBP', 'VBZ', 'v'}:
+        return 'v'
+    elif tag in {'a','JJ', 'JJR', 'JJS'}:
+        return 'a'
+    elif tag in {'r', 'RB', 'RBR', 'RBS', 'WRB'}:
+        return 'r'
+    else:
+        return None
 
-#TODO: add the reappraisal as a new pipeline
+def get_synonyms(sentence, word, tag=None):
+    """
+    :param: sentence: sentence with which to grab context, respresented as a list of words
+    :param word: a word to synonymize
+    :param tag: optional, specifies POS
+    :return: list of synonyms of that word
+    """
+    if word not in STOP_WORDS:
+        wn_tag = convert_to_wordnet(tag) if tag else None
+        if wn_tag:
+            probable_synset = lesk(sentence, word, pos=wn_tag)
+        else:
+            probable_synset = lesk(sentence, word)
+        if probable_synset:
+            synonyms = set(
+                filter(lambda lemma: (not "_" in lemma.name()) and (not lemma.name() == word), probable_synset.lemmas()))
+            return list(map(lambda lemma: lemma.name().lower(), synonyms))
+        else:
+            return []
+    return []
 
 
                

@@ -57,6 +57,5 @@ python model -args
 
 ## __Future Updates__:
 - Set logging level with -v and a number 
-- Ability to specify training data
 
 

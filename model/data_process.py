@@ -1,5 +1,6 @@
 
 from abc import ABCMeta
+from dataclasses import dataclass
 
 import pandas
 import pickle
@@ -154,4 +155,10 @@ def reappStrategyFactory(strategyString):
         return ObjectiveStrategy()
     else:
         raise Exception("Incorrect Strategy")
+
+
+@dataclass
+class SentimentWrapper:
+    polarity: float
+    subjectivity:float
 

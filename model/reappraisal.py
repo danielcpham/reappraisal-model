@@ -83,25 +83,7 @@ class Model:
             weights, score_list = self.fit_word_scores(tagged_response, score)
             full_score_list.append(score_list)
             weights_list.append((weights, score))
-
-        #     if self.strat == "o":
-
-        #         sentiment = doc._.sentiment
-        #         if sentiment.polarity == 0:
-        #             sentiment.polarity += 0.001
-        #         sentiment.polarity /= 5
-
-        #         if sentiment.subjectivity == 0:
-        #             sentiment.subjectivity += 0.001
-        #         sentiment.subjectivity /= 5
             
-        #     self.data.append((tagged_response, score))
-        
-        # ### For each response in the data set, train the model on the expected scores
-        # for response, score in self.data:
-        #     weights, score_list = self.fit_word_scores(response, score)
-        #     full_score_list.append(score_list)
-        #     weights_list.append((weights, score))
         word_scores = self.get_scoring_bank(full_score_list)
         observed_weights = self.best_fit_weights(weights_list)
         self.weights = observed_weights
@@ -147,6 +129,8 @@ class Model:
                             # Save the result in the bank
                             self.wordtag_scores[tag][word] = sim_score
                         score = sim_score
+                        
+                        
             ### Add the token and the score to the scored list. 
             scored_sentence.append((token.text, score))
         logging.debug(scored_sentence)
@@ -356,14 +340,8 @@ def normalize_sentiment(sentiment):
     Sentiment ranges from [0, 1] (By Textblob API). If sentiment has absolute value 0, set it 0.01 to avoid getting 
         a 0 value. Else, leave it. 
     '''
-
     sentiment.polarity = 0.01 if np.abs(sentiment.polarity) == 1 else -np.abs(sentiment.polarity) + 1 
-    if sentiment.subjectivity == 0:
-        sentiment.subjectivity += 0.01
-    # if sentiment.polarity == 0:
-    #     # Must take absolute value because polarity ranges from -1 to 1 (TextBlob API)
-    #     sentiment.polarity += 0.1
-    #     sentiment.polarity /= 5
+    sentiment.subjectivity = 0.01 if sentiment.subjectivity == 0 else sentiment.subjectivity
     return sentiment          
 
 

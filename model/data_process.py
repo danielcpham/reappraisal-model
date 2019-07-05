@@ -159,6 +159,7 @@ def reappStrategyFactory(strategyString):
 
 @dataclass
 class SentimentWrapper:
+   # TODO: put normalization here
     polarity: float
     subjectivity:float
 

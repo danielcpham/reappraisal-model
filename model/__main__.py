@@ -54,11 +54,12 @@ def main():
 
     if test:
         # Specify Test Data 
-        print("Enter a file for testing (.xlsx or .csv):")
-        root = Tk()
-        root.withdraw()
-        root.wm_attributes('-topmost', True)
-        test_filename = askopenfilename()
+        # print("Enter a file for testing (.xlsx or .csv):")
+        # root = Tk()
+        # root.withdraw()
+        # root.wm_attributes('-topmost', True)
+        # test_filename = askopenfilename()
+        test_filename = "C:\\Users\\palad\\Desktop\\reappraisal-model-spacy\\input\\test\\Proofread_LDH_Data_Readable_Test.xlsx"
 
         # Reading Test Data
         test_data = pd.DataFrame(columns = ['Text Response', "Objectivity Score", "Far Away Score"])

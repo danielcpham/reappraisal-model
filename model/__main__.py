@@ -6,7 +6,7 @@ import spacy
 import os
 import sys
 import threading
-import logging
+import logging 
 
 from tkinter import Tk
 from tkinter.filedialog import askopenfilename
@@ -54,12 +54,12 @@ def main():
 
     if test:
         # Specify Test Data 
-        # print("Enter a file for testing (.xlsx or .csv):")
-        # root = Tk()
-        # root.withdraw()
-        # root.wm_attributes('-topmost', True)
-        # test_filename = askopenfilename()
-        test_filename = "C:\\Users\\palad\\Desktop\\reappraisal-model-spacy\\input\\test\\Proofread_LDH_Data_Readable_Test.xlsx"
+        print("Enter a file for testing (.xlsx or .csv):")
+        root = Tk()
+        root.withdraw()
+        root.wm_attributes('-topmost', True)
+        test_filename = askopenfilename()
+        # test_filename = "C:\\Users\\palad\\Desktop\\reappraisal-model-spacy\\input\\test\\Proofread_LDH_Data_Readable_Test.xlsx"
 
         # Reading Test Data
         test_data = pd.DataFrame(columns = ['Text Response', "Objectivity Score", "Far Away Score"])
@@ -110,6 +110,7 @@ def main():
         else:
             raise("Invalid file type!")
             exit()
+        logging.WARNING("Evaluation not currently implemented.")
         
         
 main()

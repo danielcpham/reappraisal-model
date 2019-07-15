@@ -1,18 +1,21 @@
-import reappraisal
+from reappraisal import Model, extrapolate_data
 
 import pandas as pd
 import spacy
 
 import os
 import sys
-import threading
+# import threading
 import logging 
+from datetime import datetime
 
 from tkinter import Tk
 from tkinter.filedialog import askopenfilename
 
 
-FORMAT = '%(asctime)-15s: %(message)s'
+
+
+
 
 def main():
     strat = None
@@ -28,28 +31,49 @@ def main():
             strat = "f"
         elif arg == "-o":
             strat = "o"
-        elif arg == "-t":
-            test = True 
-        else:
-            raise(Exception(f"Invalid Argument: {arg}"))
-    if verbose:
-        logging.basicConfig(level=logging.DEBUG, format=FORMAT)
-        logging.debug("Verbose Logging Enabled")
-    else:
-        logging.basicConfig(level=logging.INFO, format=FORMAT)
+        elif arg == '-t':
+            test = True
+    if not strat:
+        strat = input("Press f to initiate a far-away model. Press o to initiate an objectivity model.")
+    
+    
+    logger = logging.getLogger("ROOT")
+    formatter = logging.Formatter('[%(name)s-%(levelname)s]: %(asctime)-15s: %(message)s')
+    
+    ch = logging.StreamHandler(sys.stdout)
+    ch.setFormatter(formatter)
+    ch.setLevel(logging.INFO)
+    logger.setLevel(logging.DEBUG)
+    logger.addHandler(ch)
+
+
+    starttime = datetime.now().strftime('%y%m%d_%H%M%S')
+    fh = logging.FileHandler(f'output/{starttime}-{strat}.log')
+    fh.setFormatter(formatter)
+    logger.addHandler(fh)
+
+
+    if verbose: 
+        fhv = logging.FileHandler(f'output/verbose/{starttime}-{strat}.log')
+        fhv.setLevel(logging.DEBUG)
+        fhv.setFormatter(formatter)
+        logger.addHandler(fhv)
+    logger.info('Testing Notes: Objective No Sentiment At All')
+
+
+
     if strat == 'f':
-        logging.info("Far Away Analysis Initialized")
+        logger.info("Far Away Analysis Initialized")
     if strat == 'o':
-        logging.info("Objective Analysis Initialized")
+        logger.info("Objective Analysis Initialized")
 
     # Read training data
     data = pd.DataFrame(columns = ['Text Response', "Objectivity Score", "Far Away Score"])
     for filename in os.listdir(cwd + "/input/training"):
-        data = pd.concat([data, reappraisal.extrapolate_data(cwd + "/input/training/" + filename)], axis = 0)
-    if not strat:
-        strat = input("Press f to initiate a far-away model. Press o to initiate an objectivity model.  ")
+        data = pd.concat([data, extrapolate_data(cwd + "/input/training/" + filename)], axis = 0)
+    
     # Create linguistic model and fit training data 
-    model = reappraisal.Model(data, strat, verbose)
+    model = Model(data, starttime, strat, verbose)
     model.fit()
 
     if test:
@@ -58,13 +82,13 @@ def main():
         root = Tk()
         root.withdraw()
         root.wm_attributes('-topmost', True)
-        test_filename = askopenfilename()
-        # test_filename = "C:\\Users\\palad\\Desktop\\reappraisal-model-spacy\\input\\test\\Proofread_LDH_Data_Readable_Test.xlsx"
+        # test_filename = askopenfilename()
+        test_filename = ".\\input\\test\\test.xlsx"
 
         # Reading Test Data
         test_data = pd.DataFrame(columns = ['Text Response', "Objectivity Score", "Far Away Score"])
-        test_data = pd.concat([test_data, reappraisal.extrapolate_data(test_filename)], axis = 0)
-        logging.info(f"{len(test_data)} responses added for testing")
+        test_data = pd.concat([test_data, extrapolate_data(test_filename)], axis = 0)
+        logger.info(f"{len(test_data)} responses added for testing")
         if strat == 'f':
             ## Far Away Labeling
             test_data.columns = ["Text Response", "Observed Score", "Expected Score"]
@@ -80,12 +104,12 @@ def main():
             test_data.iloc[index, test_data.columns.get_loc('Observed Score')] = score
 
         # Save testing data
-        test_data.to_csv(f"{cwd}/output/{strat}_test.csv")
-        logging.info("Testing Complete")
-        logging.debug(test_data)
+        test_data.to_csv(f"{cwd}/output/{starttime}-{strat}_test.csv")
+        logger.info("Testing Complete")
+        # logger.debug(test_data)
 
         # Test Data Analysis:
-        logging.info(f"Correlation: {test_data['Observed Score'].corr(test_data['Expected Score'])}")
+        logger.info(f"Correlation: {test_data['Observed Score'].corr(test_data['Expected Score'])}")
     else:
         ftypes = [
         ('Excel files', '*.xlsx'), 
@@ -95,22 +119,22 @@ def main():
         ]
 
 
-        print("Enter a file to evaluate: ")
-        Tk().withdraw()
-        eval_filename = askopenfilename(filetypes = ftypes)
-        # Evaluate by pasting a table 
-        if ".xlsx" in eval_filename:
-            df = pd.read_excel(filename)
-        elif ".csv" in eval_filename:
-            df = pd.read_csv(filename)
-        # elif ".txt" in eval_filename:
-        #     # Evaluate by pasting text
-        #     nlp
-        #     pass
-        else:
-            raise("Invalid file type!")
-            exit()
-        logging.WARNING("Evaluation not currently implemented.")
+        # print("Enter a file to evaluate: ")
+        # Tk().withdraw()
+        # eval_filename = askopenfilename(filetypes = ftypes)
+        # # Evaluate by pasting a table 
+        # if ".xlsx" in eval_filename:
+        #     df = pd.read_excel(filename)
+        # elif ".csv" in eval_filename:
+        #     df = pd.read_csv(filename)
+        # # elif ".txt" in eval_filename:
+        # #     # Evaluate by pasting text
+        # #     nlp
+        # #     pass
+        # else:
+        #     raise("Invalid file type!")
+        #     exit()
+        # logger.warning("Evaluation not currently implemented.")
         
         
 main()

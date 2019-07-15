@@ -1,26 +1,20 @@
 # Linguistic Distancing Model 
 
 ## __Dependencies__ :
-- Python 3.x+
-- spaCy 2.x+
-    - ```python -m spacy download en_core_web_md```
-- NLTK 3.x+ (for now)
-- TextBlob 
-- numPy 1.16+
-- Pandas 0.23.4+
-- Future Dependencies:
-    - LIWC 
+All dependencies are stored in the `venv`folder. To start up the virtual environment:
+- On Windows:
 
-All current dependencies (given that Python is installed on the device) can be installed with the following:
-```
-pip install xxx
-```
+ ```shell
+ $ .\venv\Scripts\activate
+ ```
 
-To install the models needed to run the algorithm, run the following in command:
+ -On MacOS/Linux:
+ ```bash
+ $ source venv/bin/activate
+ ```
 
-```
-python -m spacy download en_core_web_sm
-```
+ This will start a `virtualenv` within the command line preinstalled with dependencies for the model.
+ The only requirement that is not installed this way (for Git's storage reasons) are the SpaCy language model files, which are installed on first run of the model if not already installed.
 
 ## __Running__: 
 
@@ -32,7 +26,7 @@ python model -args
 ### Additional Arguments:
 - ```-f ``` - Far Away Analysis - Flag to enable analysis for far away/spatiotemporal distancing. 
 - ```-o ``` - Objectivity Analysis - Flag to enable analysis for objective distancing. 
-    - Note that the ``` -f/-o``` flags are mutually exclusive; the script is currently incapable of analyzing far away distancing and objective distancing simultaneously. 
+    - Note that the ``` -f/-o``` flags should be mutually exclusive; the script is currently incapable of analyzing far away distancing and objective distancing simultaneously. 
 - ```-v ``` : verbose - Flag to enable debug logging. 
 
 
@@ -56,6 +50,5 @@ python model -args
 
 
 ## __Future Updates__:
-- Set logging level with -v and a number 
 
 

@@ -7,6 +7,7 @@ import pandas as pd
 from collections import defaultdict
 import logging
 from dataclasses import dataclass
+from datetime import datetime
 import os
 import sys
 
@@ -29,8 +30,14 @@ class Model:
 
         starttime = datetime.now().strftime('%y%m%d_%H%M%S')
         fh = logging.FileHandler(f'output/{starttime}-{strat}.log')
+        fh.setLevel(logging.INFO)
         fh.setFormatter(formatter)
         self.logger.addHandler(fh)
+
+        ch = logging.StreamHandler(sys.stdout)
+        ch.setFormatter(formatter)
+        ch.setLevel(logging.INFO)
+        self.logger.addHandler(ch)
 
 
         if verbose: 
@@ -59,7 +66,6 @@ class Model:
         elif strat == 'o':
             self.df = df[['Text Response', 'Objectivity Score']]
             self.reappStrategy = reappStrategyFactory('obj')
-
             ### Initialize sentiment analysis 
             Doc.set_extension("sentiment",
             getter = lambda doc: TextBlob(doc.text).sentiment)
@@ -101,9 +107,11 @@ class Model:
                 sentiment = SentimentWrapper(doc._.sentiment.polarity, doc._.sentiment.subjectivity)
                 sentiment = normalize_sentiment(sentiment)
                 # Let the sentiment modifier be the average of polarity and subjectivity scores. 
-                # score *= (sentiment.polarity + sentiment.subjectivity) / 2
-                # score *= sentiment.subjectivity
-                # self.logger.debug(f"New Score: {score}, Polarity: {sentiment.polarity}. Subjectivity: {sentiment.subjectivity}")
+                self.logger.debug(f'Old Score: {score}, New Score: {score * sentiment.subjectivity}')
+                score *= (sentiment.subjectivity + sentiment.polarity) / 2
+
+                
+                self.logger.debug(f"New Score: {score}, Polarity: {sentiment.polarity}. Subjectivity: {sentiment.subjectivity}")
 
             weights, score_list = self.fit_word_scores(tagged_response, score)
             full_score_list.append(score_list)
@@ -165,8 +173,8 @@ class Model:
         if self.strat == "o":
             sentiment = SentimentWrapper(doc._.sentiment.polarity, doc._.sentiment.subjectivity)
             sentiment = normalize_sentiment(sentiment)
-            # total_score /= (sentiment.polarity + sentiment.subjectivity) / 2
-            # total_score /= sentiment.subjectivity
+            total_score /= (sentiment.polarity + sentiment.subjectivity) / 2
+            # total_score /= sentiment.subjectivity 
         return scored_sentence, total_score
 
     def standardize_weights(self, weights: dict): 
@@ -247,22 +255,21 @@ class Model:
                 neg_score = -pos_score
         ### Obtain the word,tag,score tuple for each positive word
         for word, tag in pos_list:
-            # self.logger.debug(f'Original: {word} -> {pos_score}')
-            # textblob = TextBlob(word).sentiment
-            # sentiment = SentimentWrapper(textblob.polarity, textblob.subjectivity)
-            # sentiment = normalize_sentiment(sentiment)
-            # sentiment_score = pos_score * (sentiment.polarity + sentiment.subjectivity) / 2
-            # self.logger.debug(f'After Sentiment: {word} -> {sentiment_score}')
-            # score_list.append((word, tag, sentiment_score))
-            score_list.append((word, tag, pos_score))
+            self.logger.debug(f'Original: {word} -> {pos_score}')
+            textblob = TextBlob(word).sentiment
+            sentiment = SentimentWrapper(textblob.polarity, textblob.subjectivity)
+            sentiment = normalize_sentiment(sentiment)
+            sentiment_score = pos_score * (sentiment.subjectivity + sentiment.polarity) / 2 
+            self.logger.debug(f'After Sentiment: {word} -> {sentiment_score}')
+            score_list.append((word, tag, sentiment_score))
+            # score_list.append((word, tag, pos_score))
         ### Obtain the word,tag,score tuple for each negative word
         for word, tag in neg_list:
-            # self.logger.debug(f'Original: {word} -> {neg_score}')
-            # textblob = TextBlob(word).sentiment
-            # sentiment = SentimentWrapper(textblob.polarity, textblob.subjectivity)
-            # sentiment = normalize_sentiment(sentiment)
-            # sentiment_score = neg_score *  (sentiment.polarity + sentiment.subjectivity) / 2
-            # self.logger.debug(f'After Sentiment: {word} -> {sentiment_score}')
+            textblob = TextBlob(word).sentiment
+            sentiment = SentimentWrapper(textblob.polarity, textblob.subjectivity)
+            sentiment = normalize_sentiment(sentiment)
+            sentiment_score = neg_score *  (sentiment.subjectivity + sentiment.polarity ) / 2 
+            self.logger.debug(f'{word} -> {neg_score} -> {sentiment_score}')
             score_list.append((word, tag, sentiment_score))
             # score_list.append((word, tag, neg_score))          
         ### For each category in the weights matrix, get the raw score:

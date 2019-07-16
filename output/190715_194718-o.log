@@ -1,0 +1,7 @@
+[ROOT-INFO]: 2019-07-15 19:47:18,159: Testing Notes: Objective Distancing - Sentiment Word and Sentence Level - Subjective Only 
+[ROOT-INFO]: 2019-07-15 19:47:18,159: Objective Analysis Initialized
+[REAPPRAISAL-INFO]: 2019-07-15 19:47:52,369: spaCy Library Loaded
+[REAPPRAISAL-INFO]: 2019-07-15 19:48:50,611: Model trained on 2153 responses
+[ROOT-INFO]: 2019-07-15 19:48:51,288: 452 responses added for testing
+[ROOT-INFO]: 2019-07-15 19:49:14,397: Testing Complete
+[ROOT-INFO]: 2019-07-15 19:49:14,753: Correlation: -0.011395835401544213

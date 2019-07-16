@@ -58,7 +58,7 @@ def main():
         fhv.setLevel(logging.DEBUG)
         fhv.setFormatter(formatter)
         logger.addHandler(fhv)
-    logger.info('Testing Notes: Objective No Sentiment At All')
+    logger.info('Testing Notes: Objective Distancing - Sentiment Word and Sentence Level - Polar and SUbjective Avg ')
 
 
 
@@ -111,12 +111,13 @@ def main():
         # Test Data Analysis:
         logger.info(f"Correlation: {test_data['Observed Score'].corr(test_data['Expected Score'])}")
     else:
-        ftypes = [
-        ('Excel files', '*.xlsx'), 
-        ('CSV files', '*.csv'),  # semicolon trick
-        # ('Text files', '*.txt'), 
-        ('All files', '*'), 
-        ]
+        pass 
+        # ftypes = [
+        # ('Excel files', '*.xlsx'), 
+        # ('CSV files', '*.csv'),  # semicolon trick
+        # # ('Text files', '*.txt'), 
+        # ('All files', '*'), 
+        # ]
 
 
         # print("Enter a file to evaluate: ")

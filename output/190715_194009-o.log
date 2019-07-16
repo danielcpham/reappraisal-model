@@ -1,0 +1,7 @@
+[ROOT-INFO]: 2019-07-15 19:40:09,102: Testing Notes: Objective Distancing - Sentiment Word Level Only - rawScore * polarityOnly
+[ROOT-INFO]: 2019-07-15 19:40:09,103: Objective Analysis Initialized
+[REAPPRAISAL-INFO]: 2019-07-15 19:40:37,087: spaCy Library Loaded
+[REAPPRAISAL-INFO]: 2019-07-15 19:41:19,733: Model trained on 2153 responses
+[ROOT-INFO]: 2019-07-15 19:41:19,891: 452 responses added for testing
+[ROOT-INFO]: 2019-07-15 19:41:31,317: Testing Complete
+[ROOT-INFO]: 2019-07-15 19:41:31,319: Correlation: 0.15363571642194315

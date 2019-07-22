@@ -58,7 +58,9 @@ def main():
         fhv.setLevel(logging.DEBUG)
         fhv.setFormatter(formatter)
         logger.addHandler(fhv)
-    logger.info('Testing Notes: Objective Distancing - Sentiment Word and Sentence Level - Polar and SUbjective Avg ')
+    logger.info('Testing Notes: Objectivity Trained, Sentiment Sentence Level, Subjective Only')
+
+
 
 
 
@@ -69,8 +71,13 @@ def main():
 
     # Read training data
     data = pd.DataFrame(columns = ['Text Response', "Objectivity Score", "Far Away Score"])
-    for filename in os.listdir(cwd + "/input/training"):
-        data = pd.concat([data, extrapolate_data(cwd + "/input/training/" + filename)], axis = 0)
+    # for filename in os.listdir(cwd + "/input/training"):
+    #     data = pd.concat([data, extrapolate_data(cwd + "/input/training/" + filename)], axis = 0)
+
+    data = pd.concat([data, extrapolate_data(cwd + "/input/training/training_data.xlsx")], axis = 0)
+
+
+
     
     # Create linguistic model and fit training data 
     model = Model(data, starttime, strat, verbose)
@@ -83,7 +90,8 @@ def main():
         root.withdraw()
         root.wm_attributes('-topmost', True)
         # test_filename = askopenfilename()
-        test_filename = ".\\input\\test\\test.xlsx"
+        test_filename = ".\\input\\test\\test_data.xlsx"
+
 
         # Reading Test Data
         test_data = pd.DataFrame(columns = ['Text Response', "Objectivity Score", "Far Away Score"])

@@ -25,11 +25,12 @@ FORMAT = '%(asctime)-15s: %(message)s'
 class Model:
     def __init__(self, df: pd.DataFrame, starttime, strat = 'o', verbose = False):
         # Initialization for logging
+        # starttime = datetime.now().strftime('%y%m%d_%H%M%S')
+
         self.logger = logging.getLogger("REAPPRAISAL")
         self.logger.setLevel(logging.DEBUG)
         formatter = logging.Formatter('[%(name)s-%(levelname)s]: %(asctime)-15s: %(message)s')
 
-        starttime = datetime.now().strftime('%y%m%d_%H%M%S')
         fh = logging.FileHandler(f'output/{starttime}-{strat}.log')
         fh.setLevel(logging.INFO)
         fh.setFormatter(formatter)
@@ -79,7 +80,6 @@ class Model:
         self.data = []
         self.logger.debug("Model Initialized")
 
-
     def fit(self):
         """
         Fits all of the data given according to the weights of the given strategy's categories. 
@@ -107,10 +107,9 @@ class Model:
             # and adjust tagged score proportionally. 
             # See normalize_sentiment() for normalization procedures. 
             if self.strat == "o":
-        
                 sentiment = SentimentWrapper(doc._.sentiment.polarity, doc._.sentiment.subjectivity)
                 sentiment = normalize_sentiment(sentiment)
-                sentiment_proportion = (sentiment.subjectivity)
+                sentiment_proportion = (sentiment.subjectivity + sentiment.polarity) / 2
                 self.logger.debug(f'Old Score: {score}, New Score: {score * sentiment_proportion}')
                 score *= sentiment_proportion
             # After sentence sentiment is taken into account, fit the scores at the word level.
@@ -182,11 +181,11 @@ class Model:
         # Sums up the scores of the entire text. 
         total_score = sum([score for word, score in scored_sentence])
         # If analyzing objective distancing, "undo" the proportion of sentiment in the score. 
-        if self.strat == "o":
-            sentiment = SentimentWrapper(doc._.sentiment.polarity, doc._.sentiment.subjectivity)
-            sentiment = normalize_sentiment(sentiment)
-            sentiment_proportion = sentiment.subjectivity
-            total_score /= sentiment_proportion
+        # if self.strat == "o":
+        #     sentiment = SentimentWrapper(doc._.sentiment.polarity, doc._.sentiment.subjectivity)
+        #     sentiment = normalize_sentiment(sentiment)
+        #     sentiment_proportion = (sentiment.subjectivity + sentiment.polarity) / 2
+        #     total_score /= sentiment_proportion
         return scored_sentence, total_score
 
     def standardize_weights(self, weights: dict): 
@@ -270,22 +269,21 @@ class Model:
                 textblob = TextBlob(word).sentiment
                 sentiment = SentimentWrapper(textblob.polarity, textblob.subjectivity)
                 sentiment = normalize_sentiment(sentiment)
-                sentiment_score = (sentiment.subjectivity + sentiment.polarity) / 2 
+                sentiment_score = (sentiment.subjectivity + sentiment.polarity) / 2
                 self.logger.debug(f'After Sentiment: {word} -> {pos_score * sentiment_score}')
                 pos_score *= sentiment_score
             score_list.append((word, tag, pos_score))
         # Obtain the word,tag,score tuple for each negative word
         for word, tag in neg_list:
-        
             # Check sentiment at word level when analyzing objective distancing. 
-            # if self.strat == 'o':
-            #     self.logger.debug(f'Original: {word} -> {neg_score}')
-            #     textblob = TextBlob(word).sentiment
-            #     sentiment = SentimentWrapper(textblob.polarity, textblob.subjectivity)
-            #     sentiment = normalize_sentiment(sentiment)
-            #     sentiment_score = (sentiment.subjectivity + sentiment.polarity) / 2 
-            #     self.logger.debug(f'After Sentiment: {word} -> {neg_score * sentiment_score}')
-            #     neg_score *= sentiment_score
+            if self.strat == 'o':
+                self.logger.debug(f'Original: {word} -> {neg_score}')
+                textblob = TextBlob(word).sentiment
+                sentiment = SentimentWrapper(textblob.polarity, textblob.subjectivity)
+                sentiment = normalize_sentiment(sentiment)
+                sentiment_score = (sentiment.subjectivity + sentiment.polarity) / 2
+                self.logger.debug(f'After Sentiment: {word} -> {neg_score * sentiment_score}')
+                neg_score *= sentiment_score
             score_list.append((word, tag, neg_score))    
         # For each category in the weights matrix, get the raw score:
         #   raw_score = Number of occurrences of the weight * score 
@@ -321,7 +319,23 @@ class Model:
         return pd.DataFrame(observed_weights, index = self.reappStrategy.categories).to_dict()[0]
 
 
-    
+   
+
+# def most_similar(token):
+#     """Returns the 10 most similar words of the token. 
+#     Arguments:
+#         token {Token} -- Token to be searching for synonyms 
+#     Returns:
+#         list(str)-- string of synonyms for token
+#     """
+#     queries = [t for t in token.vocab if t.is_lower == token.is_lower and t.prob >= -15]
+#     by_similarity = sorted(queries, key=lambda t: token.similarity(t), reverse=True)
+#     return by_similarity[:np.minimum(10, len(by_similarity))]  
+
+######################
+## HELPER FUNCTIONS ##
+######################
+
 def extrapolate_data(filename):
     """
     Arguments:
@@ -339,21 +353,6 @@ def extrapolate_data(filename):
         df.columns = ['Text Response', "Objectivity Score", "Far Away Score"]
     return df
 
-
-# def most_similar(token):
-#     """Returns the 10 most similar words of the token. 
-#     Arguments:
-#         token {Token} -- Token to be searching for synonyms 
-#     Returns:
-#         list(str)-- string of synonyms for token
-#     """
-#     queries = [t for t in token.vocab if t.is_lower == token.is_lower and t.prob >= -15]
-#     by_similarity = sorted(queries, key=lambda t: token.similarity(t), reverse=True)
-#     return by_similarity[:np.minimum(10, len(by_similarity))]  
-
-######################
-## HELPER FUNCTIONS ##
-######################
 
 def convert_to_wordnet(tag):
     """

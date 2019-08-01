@@ -58,7 +58,7 @@ def main():
         fhv.setLevel(logging.DEBUG)
         fhv.setFormatter(formatter)
         logger.addHandler(fhv)
-    logger.info('Testing Notes: Objectivity Trained, Sentiment Sentence Level, Subjective Only')
+    logger.info('Testing Notes: Objectivity Trained, Sentiment: Sentence and Word - Subjective and Polar')
 
 
 

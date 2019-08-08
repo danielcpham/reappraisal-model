@@ -45,29 +45,43 @@ After applying this process to every response, the model then transforms the wor
 ### __Model Prediction__:
 To predict the score of text, the model tags the input text and then simply looks up the score of each word based on the trained tag-word dictionary. If the word is a novel word (thus not in the dictionary), the model searches for synonyms of that word within the mapping and finds the average of all the synonym's scores. Once this is found, the dictionary is updated with that word-tag's score. 
 
-### __The Sentiment Problem__:
+### _The Sentiment Problem_:
 A current problem we are still trying to solve is the best way to incorporate sentiment into objective analysis; by definition, objectivity is the lack of emotionally charged language. 
 Below is an analysis of each way objective analysis is run with regards to sentiment. All sentiment scores are generated with the following algorithm:
 
 - Run each word through TextBlob in order to obtain sentiment scores, which contain a score for __subjectivity__ (between 0 and 1) and a score for __polarity__ (between -1 and 1). 
-- Transform the polarity score by taking the absolute value of the score, jaskdflkasdfjkasdjfasdfasdjfasdf
+- Transform the polarity score as such:
+```
+new_polar = [-1 * abs(old_polar)] + 1
+```
+- Add a trivial amount if the score is 0 to avoid divide by zero errors (0.0001).
+
+This means that texts that are more subjective and less polar have higher scores and less subjective/more polar scores have lower scores, on a scale of 0 to 1. 
 
 
+#### Base: Objective Analysis without Sentiment
 Objective (No Sentiment) - 0.09807345
 
-Sentiment as a Scale Factor:  	 
+#### Sentiment as a Scale Factor:  	 
+
+This method applies sentiment changes as a multiplier after all the words have been scored. This application can occur at the sentence level, where the score of the entire sentence is scaled by the sentiment of the entire sentence before the words are scored, and/or at the word level, where each word's score is scaled by its sentiment after the word has been been scored. The table below shows the correlation coefficient of models that incorporate different parts of sentiment at different stages of the word fitting. 
 
 | Method | Subjectivity  | Polarity | Both | 
 | ------ | -------- | ----------------- | -------------- |
 | Sentence Level | 0.18614455   | 0.01918858  | 0.145313 | 
-| Word |	-0.0409038 |	0.17185006 |	0.154954 |
-|Both |	-0.0983903 |	0.02679118 |	0.109418| 
+| Word Level |	-0.0409038 |	0.17185006 |	0.154954 |
+|Both |	-0.0983903 |	0.02679118 |	0.109418 | 
 
-Sentiment as a Weighted Category:
+Note that these scores take into account sentiment during prediction as well, which doesn't make a whole lot of sense; check back in to see sentiment updates with those removed.
+
+
+#### Sentiment as a Weighted Category:
+
+This method considers sentiment as its own principle component, where subjectivity and polarity are both weights. Note that, in this framing, both polarity and subjectivity is considered a positive category (more subjective/less polar words have greater scores and thus contribute more of a positive score to the total response distancing). See branch `sentiment_change` for exact changes. As this is a new path we're looking at, it's likely that the changes may not be completely sound for our use case, but the preliminary results are below. 
 
 | Method | Score | 
 | ------ | -------- | 
-| Polarity and Subjectivity |0.03153471773761692   |
+| Polarity and Subjectivity | 0.03153471773761692   |
 | Polarity Only |	0.15093689008145939 |
 | Subjectivity Only |	-0.11981205316723109 |
 

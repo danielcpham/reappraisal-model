@@ -1,5 +1,5 @@
-from reappraisal import Model, extrapolate_data
-
+from reappraisal import Model, extrapolate_data, normalize_sentiment, SentimentWrapper
+from textblob import TextBlob
 import pandas as pd
 import spacy
 
@@ -58,7 +58,7 @@ def main():
         fhv.setLevel(logging.DEBUG)
         fhv.setFormatter(formatter)
         logger.addHandler(fhv)
-    logger.info('Testing Notes: Objectivity Trained, Sentiment: Sentence and Word - Subjective and Polar')
+    logger.info('Testing Notes: Objectivity Trained, Sentiment: Word and Sentence, Objectivity')
 
 
 
@@ -147,3 +147,7 @@ def main():
         
         
 main()
+
+# test = TextBlob('The movie yesterday was amazing!')
+# print(test.sentiment)
+# print(normalize_sentiment(SentimentWrapper(test.sentiment.polarity, test.sentiment.subjectivity)))

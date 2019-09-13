@@ -159,4 +159,4 @@ def reappStrategyFactory(strategyString):
 @dataclass
 class SentimentWrapper:
     polarity: float
-    subjectivity:float
+    objectivity: float

@@ -38,7 +38,18 @@ python model -args
 - After training, the user will be prompted via file dialog to select a table of test data. The test data should be formatted similarly to the formatting shown below. 
 
 ### __Model Fitting__:
-To fit the algorithm, the model first predicts the part-of-speech tag for each word in each response using SpaCy. Then, for each response, each word-tag pair is classified into specific categories, and the model counts the number of positive category matches and the number of negative category matches. From these counts and the raw score of the response, the model extrapolates a positive score and a negative score, which serve as a base score. The model then applies those scores to each word-tag pair and also applies the score to each category. 
+
+To fit the model, the model first predicts the part-of-speech tag for each word in each response using SpaCy. Then, two things happen:
+
+#### Score Extrapolation:
+For each response, each word-tag pair is classified into specific predetermined categories, and the model counts the number of positive category matches and the number of negative category matches. From these counts and the raw score of the response, the model extrapolates a positive score and a negative score, which serve as a base score. The extrapolation of this score satisfies two qualities:
+- The sum of all scores, positive and negative, equals the raw response score.
+- All positive category matches contribute an equal amount of positive score, and all negative category matches contribute an equal amount of negative score. 
+
+The model then applies those scores to each word-tag pair and also applies the score to each category. 
+
+#### Weight Extrapolation:
+The number of categories is counted 
 
 After applying this process to every response, the model then transforms the word-tag pair into a tag->word->score mapping, where the score is an average of all occurences of word-tag scores. The model also performs a Least Squares Best Fit on the weights to get the best fit of each category. 
 
@@ -50,17 +61,17 @@ A current problem we are still trying to solve is the best way to incorporate se
 Below is an analysis of each way objective analysis is run with regards to sentiment. All sentiment scores are generated with the following algorithm:
 
 - Run each word through TextBlob in order to obtain sentiment scores, which contain a score for __subjectivity__ (between 0 and 1) and a score for __polarity__ (between -1 and 1). 
-- Transform the polarity score by taking the absolute value of the score, jaskdflkasdfjkasdjfasdfasdjfasdf
+- Transform the polarity score by taking the absolute value of the score,
+[insert actual algorithm here]. 
 
-
-Objective (No Sentiment) - 0.09807345
+Objective (No Sentiment): 0.09807345
 
 Sentiment as a Scale Factor:  	 
 
 | Method | Subjectivity  | Polarity | Both | 
 | ------ | -------- | ----------------- | -------------- |
 | Sentence Level | 0.18614455   | 0.01918858  | 0.145313 | 
-| Word |	-0.0409038 |	0.17185006 |	0.154954 |
+| Word Level |	-0.0409038 |	0.17185006 |	0.154954 |
 |Both |	-0.0983903 |	0.02679118 |	0.109418| 
 
 Sentiment as a Weighted Category:
@@ -71,7 +82,17 @@ Sentiment as a Weighted Category:
 | Polarity Only |	0.15093689008145939 |
 | Subjectivity Only |	-0.11981205316723109 |
 
+### __The Sentiment Problem__ (continued):
+We realized that the subjectivity score was also supposed to be transformed. 
+Since we changed the scaling on the subjectivity, we also just started calling it objectivity lol. 
 
+Sentiment as a Scale Factor:  	 
+
+| Method            | Objectivity  | Polarity | Both | 
+| ------            | -------- | ----------------- | -------------- |
+| Sentence Level    | 0.10045464 | 0.12799273   | 0.13602715 | 
+| Word Level        | 0.26252657 | 0.17185006   | 0.17812991 |
+| Both              | 0.29619390 | 0.17131215   | 0.18331030 | 
 
 ## __Data Format__:
 

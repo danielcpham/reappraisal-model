@@ -103,13 +103,15 @@ class Model:
             # If objective, first multiply the score by the sentiment score
             #   and then fit the words to that modified score.
 
-            # If analyzing objective response, gets the sentiment scores of the sentence 
+            # If analyzing objective response, gets the sentiment scores of the sentence
             # and adjust tagged score proportionally. 
             # See normalize_sentiment() for normalization procedures. 
             if self.strat == "o":
                 sentiment = SentimentWrapper(doc._.sentiment.polarity, doc._.sentiment.subjectivity)
                 sentiment = normalize_sentiment(sentiment)
-                sentiment_proportion = (sentiment.subjectivity + sentiment.polarity) / 2
+                # sentiment_proportion = (sentiment.objectivity + sentiment.polarity) / 2
+                # sentiment_proportion = sentiment.polarity
+                sentiment_proportion = sentiment.objectivity
                 self.logger.debug(f'Old Score: {score}, New Score: {score * sentiment_proportion}')
                 score *= sentiment_proportion
             # After sentence sentiment is taken into account, fit the scores at the word level.
@@ -180,12 +182,6 @@ class Model:
         self.logger.debug(scored_sentence)
         # Sums up the scores of the entire text. 
         total_score = sum([score for word, score in scored_sentence])
-        # If analyzing objective distancing, "undo" the proportion of sentiment in the score. 
-        # if self.strat == "o":
-        #     sentiment = SentimentWrapper(doc._.sentiment.polarity, doc._.sentiment.subjectivity)
-        #     sentiment = normalize_sentiment(sentiment)
-        #     sentiment_proportion = (sentiment.subjectivity + sentiment.polarity) / 2
-        #     total_score /= sentiment_proportion
         return scored_sentence, total_score
 
     def standardize_weights(self, weights: dict): 
@@ -269,7 +265,9 @@ class Model:
                 textblob = TextBlob(word).sentiment
                 sentiment = SentimentWrapper(textblob.polarity, textblob.subjectivity)
                 sentiment = normalize_sentiment(sentiment)
-                sentiment_score = (sentiment.subjectivity + sentiment.polarity) / 2
+                # sentiment_score = (sentiment.objectivity + sentiment.polarity) / 2
+                # sentiment_score = sentiment.polarity
+                sentiment_score = sentiment.objectivity
                 self.logger.debug(f'After Sentiment: {word} -> {pos_score * sentiment_score}')
                 pos_score *= sentiment_score
             score_list.append((word, tag, pos_score))
@@ -277,11 +275,14 @@ class Model:
         for word, tag in neg_list:
             # Check sentiment at word level when analyzing objective distancing. 
             if self.strat == 'o':
-                self.logger.debug(f'Original: {word} -> {neg_score}')
+                self.logger.debug(f'Original: {word} -> {pos_score}')
                 textblob = TextBlob(word).sentiment
                 sentiment = SentimentWrapper(textblob.polarity, textblob.subjectivity)
                 sentiment = normalize_sentiment(sentiment)
-                sentiment_score = (sentiment.subjectivity + sentiment.polarity) / 2
+                # sentiment_score = (sentiment.objectivity + sentiment.polarity) / 2
+                # sentiment_score = sentiment.polarity
+                sentiment_score = sentiment.objectivity
+
                 self.logger.debug(f'After Sentiment: {word} -> {neg_score * sentiment_score}')
                 neg_score *= sentiment_score
             score_list.append((word, tag, neg_score))    
@@ -401,15 +402,16 @@ def normalize_sentiment(sentiment):
             then set it to 0.01 to avoid getting a 0 value. 
             Else, take the negative and add 1 to get the score between [0, 1]. 
 
-        Subjectivity ranges from [0, 1] (By Textblob API). If subjectivity has absolute value 0,
-            then set it 0.01 to avoid getting a 0 value. 
+        Subjectivity ranges from [0, 1] (By Textblob API). Subtract 1 and get absolute value such that 
+            text closer to 0 have a higher objectivity value. 
             Else, leave it. 
 
         High subjectivity/low polarity approaches 1
         Low subjectivity/high polarity approaches 0
     """
     sentiment.polarity = 0.01 if np.abs(sentiment.polarity) == 1 else -np.abs(sentiment.polarity) + 1 
-    sentiment.subjectivity = 0.01 if sentiment.subjectivity == 0 else sentiment.subjectivity
+    sentiment.objectivity = 0.01 if np.abs(sentiment.objectivity) == 1 else np.abs(sentiment.objectivity) + 1
+    # sentiment.subjectivity = 0.01 if sentiment.subjectivity == 1 else -np.abs(sentiment.subjectivity) + 1 
     return sentiment          
 
 

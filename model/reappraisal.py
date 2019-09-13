@@ -87,7 +87,7 @@ class Model:
         full_score_list = []
         weights_list = []
         # Iterate through all the rows in the data 
-        for _ , row in self.df.iterrows():
+        for num, row in self.df.iterrows():
             response, score = row['Response'].lower(), row['Score']
             # Creates a Doc object based on the single response 
             doc = self.nlp(response)
@@ -346,7 +346,8 @@ def extrapolate_data(filename):
     """
     if 'xlsx' in filename:
         df = pd.read_excel(filename)
-        df = df.iloc[:, 0:3].dropna(thresh=3)
+        print(df)
+        df = df[['Sentence', 'Objective Rating', 'Far Away Rating']]
         df.columns = ['Text Response', "Objectivity Score", "Far Away Score"]
     else:
         #TODO: check if valid file extension. 

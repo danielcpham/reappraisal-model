@@ -25,8 +25,6 @@ FORMAT = '%(asctime)-15s: %(message)s'
 class Model:
     def __init__(self, df: pd.DataFrame, starttime, strat = 'o', verbose = False):
         # Initialization for logging
-        # starttime = datetime.now().strftime('%y%m%d_%H%M%S')
-
         self.logger = logging.getLogger("REAPPRAISAL")
         self.logger.setLevel(logging.DEBUG)
         formatter = logging.Formatter('[%(name)s-%(levelname)s]: %(asctime)-15s: %(message)s')

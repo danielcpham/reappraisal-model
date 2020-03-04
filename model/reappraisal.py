@@ -53,10 +53,10 @@ class Model:
         # Attempts to load language model en_core_web_md. If it doesn't load, 
         # it runs a script that downloads it from the internet.
         try: 
-            nlp = spacy.load('en_core_web_md')
+            nlp = spacy.load('en_core_web_sm')
         except OSError:
-            os.system('python -m spacy download en_core_web_md')
-            nlp = spacy.load('en_core_web_md')
+            os.system('python -m spacy download en_core_web_sm')
+            nlp = spacy.load('en_core_web_sm')
         self.nlp = nlp
         
         self.logger.info("spaCy Library Loaded")

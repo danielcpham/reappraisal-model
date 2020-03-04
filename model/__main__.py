@@ -71,10 +71,10 @@ def main():
 
     # Read training data
     data = pd.DataFrame(columns = ['Text Response', "Objectivity Score", "Far Away Score"])
-    # for filename in os.listdir(cwd + "/input/training"):
-    #     data = pd.concat([data, extrapolate_data(cwd + "/input/training/" + filename)], axis = 0)
+    for filename in os.listdir(cwd + "/input/training"):
+        data = pd.concat([data, extrapolate_data(cwd + "/input/training/" + filename)], axis = 0)
 
-    data = pd.concat([data, extrapolate_data(os.path.join(cwd,"input", "training", "training_data.xlsx"))], axis = 0)
+    # data = pd.concat([data, extrapolate_data(os.path.join(cwd,"input", "training", "training_data.xlsx"))], axis = 0)
 
 
 
@@ -86,9 +86,9 @@ def main():
     if test:
         # Specify Test Data 
         # print("Enter a file for testing (.xlsx or .csv):")
-        root = Tk()
-        root.withdraw()
-        root.wm_attributes('-topmost', True)
+        # root = Tk()
+        # root.withdraw()
+        # root.wm_attributes('-topmost', True)
         # test_filename = askopenfilename()
         test_filename = "./input/test/test_data.xlsx"
 

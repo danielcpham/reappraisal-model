@@ -9,8 +9,8 @@ import sys
 import logging 
 from datetime import datetime
 
-from tkinter import Tk
-from tkinter.filedialog import askopenfilename
+# from tkinter import Tk
+# from tkinter.filedialog import askopenfilename
 
 
 
@@ -85,7 +85,7 @@ def main():
 
     if test:
         # Specify Test Data 
-        print("Enter a file for testing (.xlsx or .csv):")
+        # print("Enter a file for testing (.xlsx or .csv):")
         root = Tk()
         root.withdraw()
         root.wm_attributes('-topmost', True)

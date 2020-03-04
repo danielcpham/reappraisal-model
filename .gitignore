@@ -3,3 +3,4 @@
 /venv/Lib/site-packages/en_core_web_md-2.1.0-py3.7.egg-info
 **/__pycache__/**
 **/.vscode
+output/**

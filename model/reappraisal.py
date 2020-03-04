@@ -344,7 +344,6 @@ def extrapolate_data(filename):
     """
     if 'xlsx' in filename:
         df = pd.read_excel(filename)
-        print(df)
         df = df[['Sentence', 'Objective Rating', 'Far Away Rating']]
         df.columns = ['Text Response', "Objectivity Score", "Far Away Score"]
     else:

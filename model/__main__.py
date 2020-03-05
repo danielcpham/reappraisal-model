@@ -72,10 +72,9 @@ def main():
     # Read training data
     data = pd.DataFrame(columns = ['Text Response', "Objectivity Score", "Far Away Score"])
     for filename in os.listdir(cwd + "/input/training"):
-        data = pd.concat([data, extrapolate_data(cwd + "/input/training/" + filename)], axis = 0)
+        data = pd.concat([data, extrapolate_data(cwd + "/input/training/" + filename).dropna()], axis = 0)
 
     # data = pd.concat([data, extrapolate_data(os.path.join(cwd,"input", "training", "training_data.xlsx"))], axis = 0)
-
 
 
     

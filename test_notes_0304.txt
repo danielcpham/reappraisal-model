@@ -1,0 +1,3 @@
+Training on 13470 response, Testing on 134 responsess:
+- Objective: 0.23
+- Far Away: 0.20

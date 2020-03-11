@@ -1,8 +1,11 @@
 from reappraisal import Model, extrapolate_data, normalize_sentiment, SentimentWrapper
+from data_process import reappStrategyFactory
 from textblob import TextBlob
 import pandas as pd
 import numpy as np
 import spacy
+from spacy.tokens import Doc, Token
+from tqdm import tqdm
 
 import os
 import sys
@@ -48,28 +51,15 @@ def main():
     logger.addHandler(ch)
 
 
+
     starttime = datetime.now().strftime('%y%m%d_%H%M%S')
-    # fh = logging.FileHandler(f'output/{starttime}-{strat}.log')
-    # fh.setFormatter(formatter)
-    # logger.addHandler(fh)
-
-
-    # if verbose: 
-    #     fhv = logging.FileHandler(f'output/verbose/{starttime}-{strat}.log')
-    #     fhv.setLevel(logging.DEBUG)
-    #     fhv.setFormatter(formatter)
-    #     logger.addHandler(fhv)
-    logger.info('Testing Notes: Objectivity Trained, Sentiment: Word and Sentence, Objectivity')
+    
 
 
 
 
 
-    if strat == 'f':
-        logger.info("Far Away Analysis Initialized")
-    if strat == 'o':
-        logger.info("Objective Analysis Initialized")
-
+    
     # Read training data
     data = pd.DataFrame(columns = ['Text Response', "Objectivity Score", "Far Away Score"])
     for filename in os.listdir(cwd + "/input/training"):
@@ -78,10 +68,22 @@ def main():
    # Drop the column we don't need
     if strat == 'f':
         data = data.drop('Objectivity Score', axis='columns')
+        reappStrategy = reappStrategyFactory('spatiotemp')
+        logger.info("Initializing Far Away Model.")
     if strat == 'o':
         data = data.drop('Far Away Score', axis='columns')
+        reappStrategy = reappStrategyFactory('obj')
+        logger.info("Initializing Objectivity Model.")
+
+        Doc.set_extension("sentiment", getter = lambda doc: TextBlob(doc.text).sentiment)
     data.columns = ['response', 'score']
     data = data.dropna()
+
+    try: 
+        nlp = spacy.load('en_core_web_sm')
+    except OSError:
+        os.system('python -m spacy download en_core_web_sm')
+        nlp = spacy.load('en_core_web_sm')
 
 
      #bootstrap the data
@@ -103,7 +105,7 @@ def main():
     
     
         # # Create linguistic model and fit training data 
-        model = Model(data_train, starttime, strat, verbose)
+        model = Model(data_train, nlp, reappStrategy, strat)
         model.fit()
 
     
@@ -112,10 +114,12 @@ def main():
             logger.info(f"Testing {len(data_test)} responses.")
             data_test.insert(2, 'observed', [np.nan] * len(data_test))
             # print(data_test)
-            for index,response, score, _ in data_test.itertuples():
-                # logger.info(f"Reading response {index}")
-                scored_sentence, score = model.predict(response)
-                data_test.at[index, 'observed'] = score
+            with tqdm(total=len(data_test)) as pbar:
+                for index,response, score, _ in data_test.itertuples():
+                    # logger.info(f"Reading response {index}")
+                    scored_sentence, score = model.predict(response)
+                    data_test.at[index, 'observed'] = score
+                    pbar.update(1)
             # Save testing data
             # test_data.to_csv(f"{cwd}/output/{starttime}-{strat}_test.csv")
             # logger.info("Testing Complete")

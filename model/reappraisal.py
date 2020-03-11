@@ -1,6 +1,9 @@
 from data_process import reappStrategyFactory, SentimentWrapper
 
 
+from tqdm import tqdm 
+
+
 import numpy as np
 import pandas as pd
 
@@ -23,16 +26,12 @@ FORMAT = '%(asctime)-15s: %(message)s'
 
 
 class Model:
-    def __init__(self, df: pd.DataFrame, starttime, strat = 'o', verbose = False):
+    def __init__(self, df: pd.DataFrame, nlp, reappStrategy, strat = 'o'):
         # Initialization for logging
         self.logger = logging.getLogger("REAPPRAISAL")
         self.logger.setLevel(logging.DEBUG)
         formatter = logging.Formatter('[%(name)s-%(levelname)s]: %(asctime)-15s: %(message)s')
 
-        # fh = logging.FileHandler(f'output/{starttime}-{strat}.log')
-        # fh.setLevel(logging.INFO)
-        # fh.setFormatter(formatter)
-        # self.logger.addHandler(fh)
 
         ch = logging.StreamHandler(sys.stdout)
         ch.setFormatter(formatter)
@@ -40,85 +39,58 @@ class Model:
         if not len(self.logger.handlers):
             self.logger.addHandler(ch)
 
-        # if verbose: 
-        #     fhv = logging.FileHandler(f'output/verbose/{starttime}-{strat}.log')
-        #     fhv.setLevel(logging.DEBUG)
-        #     fhv.setFormatter(formatter)
-        #     self.logger.addHandler(fhv)
 
         ### Class variable initialization
         self.wordtag_scores = {}
         self.weights = {}
         self.df = df
         self.strat = strat
-
-        # Attempts to load language model en_core_web_md. If it doesn't load, 
-        # it runs a script that downloads it from the internet.
-        try: 
-            nlp = spacy.load('en_core_web_sm')
-        except OSError:
-            os.system('python -m spacy download en_core_web_sm')
-            nlp = spacy.load('en_core_web_sm')
+        self.reappStrategy = reappStrategy
         self.nlp = nlp
-        
-        self.logger.info("spaCy Library Loaded")
 
-        # Checks the reappraisal strategy, filters data appropriately,
-        # and initializes the reappraisal strategy
-        if strat == 'f':
-            self.reappStrategy = reappStrategyFactory('spatiotemp')
-        elif strat == 'o':
-            self.reappStrategy = reappStrategyFactory('obj')
-            # Initialize sentiment analysis at the sentence level/
-            try:
-                Doc.set_extension("sentiment",
-                getter = lambda doc: TextBlob(doc.text).sentiment)
-            except ValueError:
-                pass
-        else:
-            raise Exception("Please use either 'f' for Spatial Analysis or 'o' for Objective Analysis")
-        self.data = []
-        self.logger.debug("Model Initialized")
 
     def fit(self):
         """
         Fits all of the data given according to the weights of the given strategy's categories. 
         """
+        self.logger.info(f"Training on {len(self.df)} responses.")
         full_score_list = []
         weights_list = []
         # Iterate through all the rows in the data 
-        for index, response, score in self.df.itertuples():
-            response = response.lower()
-            # Creates a Doc object based on the single response 
-            doc = self.nlp(response)
-            tagged_response = []
-            # For each token in the document, add the tagged word to the data, 
-            # ignoring stop words and punctuation
-            for token in doc:
-                if not token.is_punct: 
-                    word = token.lemma_ if token.lemma_ != "-PRON-" else token.text.lower()
-                    tag = token.tag_
-                    tagged_response.append((tag, word))
-            # PROCESS TAGGED RESPONSE 
-            # If objective, first multiply the score by the sentiment score
-            #   and then fit the words to that modified score.
+        with tqdm(total=len(self.df)) as pbar:
+            for index, response, score in self.df.itertuples():
+                response = response.lower()
+                # Creates a Doc object based on the single response 
+                doc = self.nlp(response)
+                tagged_response = []
+                # For each token in the document, add the tagged word to the data, 
+                # ignoring stop words and punctuation
+                for token in doc:
+                    if not token.is_punct: 
+                        word = token.lemma_ if token.lemma_ != "-PRON-" else token.text.lower()
+                        tag = token.tag_
+                        tagged_response.append((tag, word))
+                # PROCESS TAGGED RESPONSE 
+                # If objective, first multiply the score by the sentiment score
+                #   and then fit the words to that modified score.
 
-            # If analyzing objective response, gets the sentiment scores of the sentence
-            # and adjust tagged score proportionally. 
-            # See normalize_sentiment() for normalization procedures. 
-            if self.strat == "o":
-                sentiment = SentimentWrapper(doc._.sentiment.polarity, doc._.sentiment.subjectivity)
-                sentiment = normalize_sentiment(sentiment)
-                # sentiment_proportion = (sentiment.objectivity + sentiment.polarity) / 2
-                # sentiment_proportion = sentiment.polarity
-                sentiment_proportion = sentiment.objectivity
-                self.logger.debug(f'Old Score: {score}, New Score: {score * sentiment_proportion}')
-                score *= sentiment_proportion
-            # After sentence sentiment is taken into account, fit the scores at the word level.
-            # Returns the weights dictionary of the principal components and a list of word-score tuples. 
-            weights, score_list = self.fit_word_scores(tagged_response, score)
-            full_score_list.append(score_list)
-            weights_list.append((weights, score))
+                # If analyzing objective response, gets the sentiment scores of the sentence
+                # and adjust tagged score proportionally. 
+                # See normalize_sentiment() for normalization procedures. 
+                if self.strat == "o":
+                    sentiment = SentimentWrapper(doc._.sentiment.polarity, doc._.sentiment.subjectivity)
+                    sentiment = normalize_sentiment(sentiment)
+                    # sentiment_proportion = (sentiment.objectivity + sentiment.polarity) / 2
+                    # sentiment_proportion = sentiment.polarity
+                    sentiment_proportion = sentiment.objectivity
+                    self.logger.debug(f'Old Score: {score}, New Score: {score * sentiment_proportion}')
+                    score *= sentiment_proportion
+                # After sentence sentiment is taken into account, fit the scores at the word level.
+                # Returns the weights dictionary of the principal components and a list of word-score tuples. 
+                weights, score_list = self.fit_word_scores(tagged_response, score)
+                full_score_list.append(score_list)
+                weights_list.append((weights, score))
+                pbar.update(1)
         # Collapses each word score list into a dictionary.
         # Calculates least squares best fit of weights.
         word_scores = self.get_scoring_bank(full_score_list)
@@ -146,7 +118,6 @@ class Model:
             score = 0
             if not token.is_punct:
                 self.logger.debug(f"({word},{tag})")
-               
                 if tag in self.wordtag_scores:
                     if word in self.wordtag_scores[tag]:
                         # Word-tag pair found in scoring bank. 

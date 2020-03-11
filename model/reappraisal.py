@@ -29,21 +29,22 @@ class Model:
         self.logger.setLevel(logging.DEBUG)
         formatter = logging.Formatter('[%(name)s-%(levelname)s]: %(asctime)-15s: %(message)s')
 
-        fh = logging.FileHandler(f'output/{starttime}-{strat}.log')
-        fh.setLevel(logging.INFO)
-        fh.setFormatter(formatter)
-        self.logger.addHandler(fh)
+        # fh = logging.FileHandler(f'output/{starttime}-{strat}.log')
+        # fh.setLevel(logging.INFO)
+        # fh.setFormatter(formatter)
+        # self.logger.addHandler(fh)
 
         ch = logging.StreamHandler(sys.stdout)
         ch.setFormatter(formatter)
         ch.setLevel(logging.INFO)
-        self.logger.addHandler(ch)
+        if not len(self.logger.handlers):
+            self.logger.addHandler(ch)
 
-        if verbose: 
-            fhv = logging.FileHandler(f'output/verbose/{starttime}-{strat}.log')
-            fhv.setLevel(logging.DEBUG)
-            fhv.setFormatter(formatter)
-            self.logger.addHandler(fhv)
+        # if verbose: 
+        #     fhv = logging.FileHandler(f'output/verbose/{starttime}-{strat}.log')
+        #     fhv.setLevel(logging.DEBUG)
+        #     fhv.setFormatter(formatter)
+        #     self.logger.addHandler(fhv)
 
         ### Class variable initialization
         self.wordtag_scores = {}

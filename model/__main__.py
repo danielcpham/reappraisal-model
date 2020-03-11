@@ -77,10 +77,8 @@ def main():
     data = data.dropna()
    # Drop the column we don't need
     if strat == 'f':
-        logger.info("Far Away Analysis Initialized")
         data = data.drop('Objectivity Score', axis='columns')
     if strat == 'o':
-        logger.info("Objective Analysis Initialized")
         data = data.drop('Far Away Score', axis='columns')
     data.columns = ['response', 'score']
     data = data.dropna()
@@ -94,7 +92,7 @@ def main():
         # Randomly sample 85% of the data (without replacement) to use as the training data
         # Subtract the training data from thce original data 
         # to get the testing data 
-        data2 = data.sample(frac=0.3)
+        data2 = data
         data_train = data2.sample(frac = 0.80)
         data_test = data2[~data2.apply(tuple,1).isin(data_train.apply(tuple,1))]
         data_test.columns = data.columns
@@ -103,8 +101,7 @@ def main():
         data_train.reset_index(drop=True, inplace=True)
         data_test.reset_index(drop=True, inplace=True)
     
-        
-
+    
         # # Create linguistic model and fit training data 
         model = Model(data_train, starttime, strat, verbose)
         model.fit()

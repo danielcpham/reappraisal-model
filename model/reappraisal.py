@@ -48,6 +48,7 @@ class Model:
         ### Class variable initialization
         self.wordtag_scores = {}
         self.weights = {}
+        self.df = df
         self.strat = strat
 
         # Attempts to load language model en_core_web_md. If it doesn't load, 
@@ -64,17 +65,17 @@ class Model:
         # Checks the reappraisal strategy, filters data appropriately,
         # and initializes the reappraisal strategy
         if strat == 'f':
-            self.df = df[['Text Response', 'Far Away Score']]
             self.reappStrategy = reappStrategyFactory('spatiotemp')
         elif strat == 'o':
-            self.df = df[['Text Response', 'Objectivity Score']]
             self.reappStrategy = reappStrategyFactory('obj')
             # Initialize sentiment analysis at the sentence level/
-            Doc.set_extension("sentiment",
-            getter = lambda doc: TextBlob(doc.text).sentiment)
+            try:
+                Doc.set_extension("sentiment",
+                getter = lambda doc: TextBlob(doc.text).sentiment)
+            except ValueError:
+                pass
         else:
             raise Exception("Please use either 'f' for Spatial Analysis or 'o' for Objective Analysis")
-        self.df.columns = ['Response', 'Score']
         self.data = []
         self.logger.debug("Model Initialized")
 
@@ -85,8 +86,8 @@ class Model:
         full_score_list = []
         weights_list = []
         # Iterate through all the rows in the data 
-        for num, row in self.df.iterrows():
-            response, score = row['Response'].lower(), row['Score']
+        for index, response, score in self.df.itertuples():
+            response = response.lower()
             # Creates a Doc object based on the single response 
             doc = self.nlp(response)
             tagged_response = []

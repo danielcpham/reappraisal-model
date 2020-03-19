@@ -7,7 +7,6 @@ import en_core_web_sm
 import numpy as np
 import pandas as pd
 import spacy
-from spacy.tokens import Doc, Token
 from textblob import TextBlob
 from tqdm import tqdm
 
@@ -40,6 +39,7 @@ def main():
     formatter = logging.Formatter(
         '[%(name)s-%(levelname)s]: %(asctime)-15s: %(message)s')
     # Set logging level of stdout
+    logger.setLevel(logging.DEBUG)
     ch = logging.StreamHandler(sys.stdout)
     ch.setFormatter(formatter)
     ch.setLevel(logging.INFO)
@@ -61,32 +61,25 @@ def main():
     if args.objective:
         data = data.drop('Far Away Score', axis='columns')
         logger.info("Initializing Objectivity Model.")
-        Doc.set_extension(
-            "sentiment", getter=lambda doc: TextBlob(doc.text).sentiment)
     # Rename the columns in the data.
     data.columns = ['response', 'score']
-
+    # data = data.sample(frac=0.5)
 
     # Bootstrapping
     correls = []
     # TODO: create a blank model that can be referred to.
     for i in range(10):
         # Split data into training data and testing data.
-        data = data.sample(frac=0.20)
         data_train = data.sample(frac=0.85)
-        # Takes test data to be the difference of the full data and the training data. 
+        # Takes test data to be the difference of the full data and the training data.
         data_test = data[~data.apply(tuple, 1).isin(
             data_train.apply(tuple, 1))]
         data_test.columns = data.columns
         data_train.reset_index(drop=True, inplace=True)
         data_test.reset_index(drop=True, inplace=True)
 
-        # logger.info(data_train['response'])
-        # logger.info(data_train['score'])
-
-        # Create linguistic model and fit training data
+        # Create reappraisal model and fit training data
         model = Model(nlp, reappStrategy)
-        print(type(reappStrategy))
         model.fit(data_train)
 
         logger.info(f"Testing {len(data_test)} responses.")
@@ -96,12 +89,13 @@ def main():
             for index, response, score, _ in data_test.itertuples():
                 # Using the trained model, predict the score of the response, and return the sentence
                 # as a list of (word, score) tuples.
-                _ , score = model.predict(response) # Scored Sentence is also returned, can be used for debugging
+                # Scored Sentence is also returned, can be used for debugging
+                _, score = model.predict(response)
                 data_test.at[index, 'observed'] = score
                 pbar.update(1)
         # Test Data Analysis:
         correl = data_test['observed'].corr(data_test['score'])
-        logger.info(f"Correlation for run {i}: {correl}")
+        logger.info(f"Correlation for run {i + 1}: {correl}")
         correls.append(correl)
     correls = pd.Series(correls)
     print(correls.describe())

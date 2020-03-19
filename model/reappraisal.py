@@ -3,6 +3,8 @@ import os
 import sys
 from collections import defaultdict
 from dataclasses import dataclass
+from spacy.tokens import Doc
+
 
 import numpy as np
 import pandas as pd
@@ -13,6 +15,7 @@ from spacy.lang.en.stop_words import STOP_WORDS
 from spacy.tokens import Doc, Token
 from textblob import TextBlob
 from tqdm import tqdm
+import pdb
 
 from data_process import (
     SentimentWrapper, reappStrategyFactory, ObjectiveStrategy, SpatioTempStrategy)
@@ -38,6 +41,9 @@ class Model:
         self.wordtag_scores = {}
         self.weights = {}
         self.reappStrategy = reappStrategy
+        if type(reappStrategy) == ObjectiveStrategy:
+            Doc.set_extension(
+                "sentiment", getter=lambda doc: TextBlob(doc.text).sentiment)
         self.nlp = nlp
 
     def fit(self, responses):
@@ -46,8 +52,9 @@ class Model:
         self.logger.info(f"Training on {len(responses)} responses.")
         # Iterate through all the rows in the data
         with tqdm(total=len(responses)) as pbar:
-            for _ , response, score in responses.itertuples():
+            for _, response, score in responses.itertuples():
                 response = response.lower()
+                # self.logger.info(response)
                 # Creates a Doc object based on the single response
                 doc = self.nlp(response)
                 tagged_response = []
@@ -63,14 +70,13 @@ class Model:
                 #   and then fit the words to that modified score.
 
                 # If analyzing objective response, gets the sentiment scores of the sentence
-                # and adjust tagged score proportionally.
+                # and adjust tagged score proportionally
                 # See normalize_sentiment() for normalization procedures.
-                if type(self.reappStrategy) == ObjectiveStrategy():
-                    sentiment = SentimentWrapper(
+                # self.logger.info(doc)
+                # pdb.set_trace()
+                if type(self.reappStrategy) == ObjectiveStrategy:
+                    sentiment = normalize_sentiment(
                         doc._.sentiment.polarity, doc._.sentiment.subjectivity)
-                    sentiment = normalize_sentiment(sentiment)
-                    # sentiment_proportion = (sentiment.objectivity + sentiment.polarity) / 2
-                    # sentiment_proportion = sentiment.polarity
                     sentiment_proportion = sentiment.objectivity
                     self.logger.debug(
                         f'Old Score: {score}, New Score: {score * sentiment_proportion}')
@@ -89,59 +95,8 @@ class Model:
         self.weights = observed_weights
         self.wordtag_scores = word_scores
 
-    # def fit(self):
-    #     """
-    #     Fits all of the data given according to the weights of the given strategy's categories.
-    #     """
-    #     self.logger.info(f"Training on {len(self.df)} responses.")
-    #     full_score_list = []
-    #     weights_list = []
-    #     # Iterate through all the rows in the data
-    #     with tqdm(total=len(self.df)) as pbar:
-    #         for index, response, score in self.df.itertuples():
-    #             response = response.lower()
-    #             # Creates a Doc object based on the single response
-    #             doc = self.nlp(response)
-    #             tagged_response = []
-    #             # For each token in the document, add the tagged word to the data,
-    #             # ignoring stop words and punctuation
-    #             for token in doc:
-    #                 if not token.is_punct:
-    #                     word = token.lemma_ if token.lemma_ != "-PRON-" else token.text.lower()
-    #                     tag = token.tag_
-    #                     tagged_response.append((tag, word))
-    #             # PROCESS TAGGED RESPONSE
-    #             # If objective, first multiply the score by the sentiment score
-    #             #   and then fit the words to that modified score.
-
-    #             # If analyzing objective response, gets the sentiment scores of the sentence
-    #             # and adjust tagged score proportionally.
-    #             # See normalize_sentiment() for normalization procedures.
-    #             if self.strat == "o":
-    #                 sentiment = SentimentWrapper(doc._.sentiment.polarity, doc._.sentiment.subjectivity)
-    #                 sentiment = normalize_sentiment(sentiment)
-    #                 # sentiment_proportion = (sentiment.objectivity + sentiment.polarity) / 2
-    #                 # sentiment_proportion = sentiment.polarity
-    #                 sentiment_proportion = sentiment.objectivity
-    #                 self.logger.debug(f'Old Score: {score}, New Score: {score * sentiment_proportion}')
-    #                 score *= sentiment_proportion
-    #             # After sentence sentiment is taken into account, fit the scores at the word level.
-    #             # Returns the weights dictionary of the principal components and a list of word-score tuples.
-    #             weights, score_list = self.fit_word_scores(tagged_response, score)
-    #             full_score_list.append(score_list)
-    #             weights_list.append((weights, score))
-    #             pbar.update(1)
-    #     # Collapses each word score list into a dictionary.
-    #     # Calculates least squares best fit of weights.
-    #     word_scores = self.get_scoring_bank(full_score_list)
-    #     observed_weights = self.best_fit_weights(weights_list)
-    #     self.weights = observed_weights
-    #     self.wordtag_scores = word_scores
-    #     self.logger.info(f"Model trained on {len(self.df)} responses")
-
     def predict(self, text: str):
-        """
-        Predicts reappraisal of text. 
+        """Predicts reappraisal of text.
 
         Arguments:
             text {str} -- The text to be analyzed.
@@ -201,8 +156,7 @@ class Model:
         return scored_sentence, total_score
 
     def standardize_weights(self, weights: dict):
-        """ 
-        Standardizes the weights vector.
+        """Standardizes the weights vector.
 
         Arguments:
             weights {dict} -- vector of weight scores for each category
@@ -279,11 +233,8 @@ class Model:
             if type(self.reappStrategy) == ObjectiveStrategy:
                 self.logger.debug(f'Original: {word} -> {pos_score}')
                 textblob = TextBlob(word).sentiment
-                sentiment = SentimentWrapper(
+                sentiment = sentiment = normalize_sentiment(
                     textblob.polarity, textblob.subjectivity)
-                sentiment = normalize_sentiment(sentiment)
-                # sentiment_score = (sentiment.objectivity + sentiment.polarity) / 2
-                # sentiment_score = sentiment.polarity
                 sentiment_score = sentiment.objectivity
                 self.logger.debug(
                     f'After Sentiment: {word} -> {pos_score * sentiment_score}')
@@ -292,16 +243,12 @@ class Model:
         # Obtain the word,tag,score tuple for each negative word
         for word, tag in neg_list:
             # Check sentiment at word level when analyzing objective distancing.
-            if type(self.reappStrategy) == ObjectiveStrategy():
+            if type(self.reappStrategy) == ObjectiveStrategy:
                 self.logger.debug(f'Original: {word} -> {pos_score}')
                 textblob = TextBlob(word).sentiment
-                sentiment = SentimentWrapper(
+                sentiment = sentiment = normalize_sentiment(
                     textblob.polarity, textblob.subjectivity)
-                sentiment = normalize_sentiment(sentiment)
-                # sentiment_score = (sentiment.objectivity + sentiment.polarity) / 2
-                # sentiment_score = sentiment.polarity
                 sentiment_score = sentiment.objectivity
-
                 self.logger.debug(
                     f'After Sentiment: {word} -> {neg_score * sentiment_score}')
                 neg_score *= sentiment_score
@@ -341,17 +288,6 @@ class Model:
             expected_score, dtype='float'), rcond=None)[0]
         return pd.DataFrame(observed_weights, index=self.reappStrategy.categories).to_dict()[0]
 
-
-# def most_similar(token):
-#     """Returns the 10 most similar words of the token.
-#     Arguments:
-#         token {Token} -- Token to be searching for synonyms
-#     Returns:
-#         list(str)-- string of synonyms for token
-#     """
-#     queries = [t for t in token.vocab if t.is_lower == token.is_lower and t.prob >= -15]
-#     by_similarity = sorted(queries, key=lambda t: token.similarity(t), reverse=True)
-#     return by_similarity[:np.minimum(10, len(by_similarity))]
 
 ######################
 ## HELPER FUNCTIONS ##
@@ -416,24 +352,25 @@ def get_synonyms(sentence, word, tag=None):
     return []
 
 
-def normalize_sentiment(sentiment):
-    """
-        Converts sentiment:
+def normalize_sentiment(polarity, subjectivity):
+    pol = convert_polarity(polarity)
+    obj = convert_subj_to_obj(subjectivity)
+    return SentimentWrapper(pol, obj)
 
-        Polarity ranges from [-1, 1] (By TextBlob API). If the polarity has absolute value 1 (-1 or 1), 
-            then set it to 0.01 to avoid getting a 0 value. 
-            Else, take the negative and add 1 to get the score between [0, 1]. 
 
-        Subjectivity ranges from [0, 1] (By Textblob API). Subtract 1 and get absolute value such that 
-            text closer to 0 have a higher objectivity value. 
-            Else, leave it. 
+def convert_polarity(pol):
+    # Polarity ranges from [-1, 1] (By TextBlob API). If the polarity has absolute value 1 (-1 or 1),
+    #         then set it to 0.01 to avoid getting a 0 value.
+    #         Else, take the negative and add 1 to get the score between [0, 1].
+    if np.abs(pol) == 1:
+        return 0.01
+    return -np.abs(pol) + 1
 
-        High subjectivity/low polarity approaches 1
-        Low subjectivity/high polarity approaches 0
-    """
-    sentiment.polarity = 0.01 if np.abs(
-        sentiment.polarity) == 1 else -np.abs(sentiment.polarity) + 1
-    sentiment.objectivity = 0.01 if np.abs(
-        sentiment.objectivity) == 1 else np.abs(sentiment.objectivity) + 1
-    # sentiment.subjectivity = 0.01 if sentiment.subjectivity == 1 else -np.abs(sentiment.subjectivity) + 1
-    return sentiment
+
+def convert_subj_to_obj(subj):
+    # Subjectivity ranges from [0, 1] (By Textblob API). Subtract 1 and get absolute value such that
+    #         text closer to 0 have a higher objectivity value.
+    #         Else, leave it.
+    if np.abs(subj) == 1:
+        return 0.01
+    return np.abs(subj - 1)

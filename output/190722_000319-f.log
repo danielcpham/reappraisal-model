@@ -1,7 +1,0 @@
-[ROOT-INFO]: 2019-07-22 00:03:19,582: Testing Notes: Far Away Distancing on Newly Cleaned Data
-[ROOT-INFO]: 2019-07-22 00:03:19,582: Far Away Analysis Initialized
-[REAPPRAISAL-INFO]: 2019-07-22 00:03:39,421: spaCy Library Loaded
-[REAPPRAISAL-INFO]: 2019-07-22 00:04:41,662: Model trained on 2111 responses
-[ROOT-INFO]: 2019-07-22 00:04:42,476: 134 responses added for testing
-[ROOT-INFO]: 2019-07-22 00:04:51,984: Testing Complete
-[ROOT-INFO]: 2019-07-22 00:04:51,988: Correlation: 0.23657039260065105

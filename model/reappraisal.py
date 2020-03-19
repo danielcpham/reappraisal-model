@@ -1,37 +1,35 @@
-from data_process import reappStrategyFactory, SentimentWrapper
-
-
-from tqdm import tqdm 
+import logging
+import os
+import sys
+from collections import defaultdict
+from dataclasses import dataclass
+from spacy.tokens import Doc
 
 
 import numpy as np
 import pandas as pd
-
-from collections import defaultdict
-import logging
-from dataclasses import dataclass
-from datetime import datetime
-import os
-import sys
-
-import spacy 
+import spacy
+from nltk.sentiment import vader
+from nltk.wsd import lesk
 from spacy.lang.en.stop_words import STOP_WORDS
 from spacy.tokens import Doc, Token
 from textblob import TextBlob
+from tqdm import tqdm
+import pdb
 
-from nltk.wsd import lesk
-from nltk.sentiment import vader
+from data_process import (
+    SentimentWrapper, reappStrategyFactory, ObjectiveStrategy, SpatioTempStrategy)
 
 FORMAT = '%(asctime)-15s: %(message)s'
 
 
 class Model:
-    def __init__(self, df: pd.DataFrame, nlp, reappStrategy, strat = 'o'):
+    def __init__(self, nlp, reappStrategy):
         # Initialization for logging
         self.logger = logging.getLogger("REAPPRAISAL")
         self.logger.setLevel(logging.DEBUG)
-        formatter = logging.Formatter('[%(name)s-%(levelname)s]: %(asctime)-15s: %(message)s')
-
+        formatter = logging.Formatter(
+            '[%(name)s-%(levelname)s]: %(asctime)-15s: %(message)s')
 
         ch = logging.StreamHandler(sys.stdout)
         ch.setFormatter(formatter)
@@ -39,55 +37,54 @@ class Model:
         if not len(self.logger.handlers):
             self.logger.addHandler(ch)
 
-
-        ### Class variable initialization
+        # Class variable initialization
         self.wordtag_scores = {}
         self.weights = {}
-        self.df = df
-        self.strat = strat
         self.reappStrategy = reappStrategy
+        if type(reappStrategy) == ObjectiveStrategy:
+            Doc.set_extension(
+                "sentiment", getter=lambda doc: TextBlob(doc.text).sentiment)
         self.nlp = nlp
 
-
-    def fit(self):
-        """
-        Fits all of the data given according to the weights of the given strategy's categories. 
-        """
-        self.logger.info(f"Training on {len(self.df)} responses.")
+    def fit(self, responses):
         full_score_list = []
         weights_list = []
-        # Iterate through all the rows in the data 
-        with tqdm(total=len(self.df)) as pbar:
-            for index, response, score in self.df.itertuples():
+        self.logger.info(f"Training on {len(responses)} responses.")
+        # Iterate through all the rows in the data
+        with tqdm(total=len(responses)) as pbar:
+            for _, response, score in responses.itertuples():
                 response = response.lower()
-                # Creates a Doc object based on the single response 
+                # self.logger.info(response)
+                # Creates a Doc object based on the single response
                 doc = self.nlp(response)
                 tagged_response = []
-                # For each token in the document, add the tagged word to the data, 
+                # For each token in the document, add the tagged word to the data,
                 # ignoring stop words and punctuation
                 for token in doc:
-                    if not token.is_punct: 
+                    if not token.is_punct:
                         word = token.lemma_ if token.lemma_ != "-PRON-" else token.text.lower()
                         tag = token.tag_
                         tagged_response.append((tag, word))
-                # PROCESS TAGGED RESPONSE 
+                # PROCESS TAGGED RESPONSE
                 # If objective, first multiply the score by the sentiment score
                 #   and then fit the words to that modified score.
 
                 # If analyzing objective response, gets the sentiment scores of the sentence
-                # and adjust tagged score proportionally. 
-                # See normalize_sentiment() for normalization procedures. 
-                if self.strat == "o":
-                    sentiment = SentimentWrapper(doc._.sentiment.polarity, doc._.sentiment.subjectivity)
-                    sentiment = normalize_sentiment(sentiment)
-                    # sentiment_proportion = (sentiment.objectivity + sentiment.polarity) / 2
-                    # sentiment_proportion = sentiment.polarity
+                # and adjust tagged score proportionally
+                # See normalize_sentiment() for normalization procedures.
+                # self.logger.info(doc)
+                # pdb.set_trace()
+                if type(self.reappStrategy) == ObjectiveStrategy:
+                    sentiment = normalize_sentiment(
+                        doc._.sentiment.polarity, doc._.sentiment.subjectivity)
                     sentiment_proportion = sentiment.objectivity
-                    self.logger.debug(f'Old Score: {score}, New Score: {score * sentiment_proportion}')
+                    self.logger.debug(
+                        f'Old Score: {score}, New Score: {score * sentiment_proportion}')
                     score *= sentiment_proportion
                 # After sentence sentiment is taken into account, fit the scores at the word level.
-                # Returns the weights dictionary of the principal components and a list of word-score tuples. 
-                weights, score_list = self.fit_word_scores(tagged_response, score)
+                # Returns the weights dictionary of the principal components and a list of word-score tuples.
+                weights, score_list = self.fit_word_scores(
+                    tagged_response, score)
                 full_score_list.append(score_list)
                 weights_list.append((weights, score))
                 pbar.update(1)
@@ -97,15 +94,13 @@ class Model:
         observed_weights = self.best_fit_weights(weights_list)
         self.weights = observed_weights
         self.wordtag_scores = word_scores
-        self.logger.info(f"Model trained on {len(self.df)} responses")
 
     def predict(self, text: str):
-        """
-        Predicts reappraisal of text. 
-        
+        """Predicts reappraisal of text.
+
         Arguments:
             text {str} -- The text to be analyzed.
-        
+
         Returns:
             Scored response, a list of word score pairs
             Total score of the response
@@ -120,48 +115,52 @@ class Model:
                 self.logger.debug(f"({word},{tag})")
                 if tag in self.wordtag_scores:
                     if word in self.wordtag_scores[tag]:
-                        # Word-tag pair found in scoring bank. 
-                        self.logger.debug(f"({word},{tag}) exists in scoring bank")
+                        # Word-tag pair found in scoring bank.
+                        self.logger.debug(
+                            f"({word},{tag}) exists in scoring bank")
                         score = self.wordtag_scores[tag][word]
                         # Gets the categories that the word-tag pair falls into.
                         # If any categories match,
-                        # multiplies the raw score by the weight of the category  
-                        category_match = self.reappStrategy.classifier(word, tag)
+                        # multiplies the raw score by the weight of the category
+                        category_match = self.reappStrategy.classifier(
+                            word, tag)
                         if category_match:
-                            self.logger.debug(f"({word},{tag}) Categories: {category_match}")
+                            self.logger.debug(
+                                f"({word},{tag}) Categories: {category_match}")
                             for category in category_match:
                                 score *= self.weights[category]
                     else:
-                        # Word-tag pair not found in bank; search synonyms 
+                        # Word-tag pair not found in bank; search synonyms
                         synonyms = get_synonyms(text, word, tag)
                         sim_score = 0
                         count = 1
                         if synonyms:
-                            self.logger.debug(f"Synonyms of {word}: {synonyms}")
+                            self.logger.debug(
+                                f"Synonyms of {word}: {synonyms}")
                             for synonym in synonyms:
                                 if synonym in self.wordtag_scores[tag]:
-                                    # Synonym found in the bank 
+                                    # Synonym found in the bank
                                     count += 1
-                                    self.logger.debug(f"Synonym For {word}: {synonym} -> {self.wordtag_scores[tag][synonym]}")
+                                    self.logger.debug(
+                                        f"Synonym For {word}: {synonym} -> {self.wordtag_scores[tag][synonym]}")
                                     sim_score += self.wordtag_scores[tag][synonym]
-                            sim_score /= count # Get the average of matching synonym scores 
+                            sim_score /= count  # Get the average of matching synonym scores
                             # Save the result in the bank
                             self.wordtag_scores[tag][word] = sim_score
                         score = sim_score
-            ### Add the token and the predicted score to the scored list. 
+            # Add the token and the predicted score to the scored list.
             scored_sentence.append((token.text, score))
         self.logger.debug(scored_sentence)
-        # Sums up the scores of the entire text. 
+        # Sums up the scores of the entire text.
         total_score = sum([score for word, score in scored_sentence])
         return scored_sentence, total_score
 
-    def standardize_weights(self, weights: dict): 
-        """ 
-        Standardizes the weights vector.
+    def standardize_weights(self, weights: dict):
+        """Standardizes the weights vector.
 
         Arguments:
             weights {dict} -- vector of weight scores for each category
-        
+
         Returns:
             {dict} -- weights modified to include all weights
         """
@@ -171,21 +170,21 @@ class Model:
         return weights
 
     def get_scoring_bank(self, scored_list):
-            """
-            :param scored_list: a list of scored words of the form ((Tag, Word), Score)
-            :return: the list aggregated as a dictionary mapping Tag ->Word -> Score
-            """
-            score_dict = defaultdict(dict)
-            for response in scored_list:
-                for word, tag, score in response:
-                    if word not in score_dict[tag]:
-                        score_dict[tag].update({word: []})
-                    score_dict[tag][word].append(score)
-            for tag in score_dict:
-                for word in score_dict[tag]:
-                    score_dict[tag][word] = np.mean(score_dict[tag][word])
-            score_dict = dict(score_dict)
-            return score_dict
+        """
+        :param scored_list: a list of scored words of the form ((Tag, Word), Score)
+        :return: the list aggregated as a dictionary mapping Tag ->Word -> Score
+        """
+        score_dict = defaultdict(dict)
+        for response in scored_list:
+            for word, tag, score in response:
+                if word not in score_dict[tag]:
+                    score_dict[tag].update({word: []})
+                score_dict[tag][word].append(score)
+        for tag in score_dict:
+            for word in score_dict[tag]:
+                score_dict[tag][word] = np.mean(score_dict[tag][word])
+        score_dict = dict(score_dict)
+        return score_dict
 
     def fit_word_scores(self, tagged_response: list, score: float):
         """
@@ -201,7 +200,7 @@ class Model:
         for tag, word in tagged_response:
             # Classify the word-tag pair based on the strategy used
             matched_categories = self.reappStrategy.classifier(word, tag)
-            # Separate positive and negative category matches into separate lists 
+            # Separate positive and negative category matches into separate lists
             if len(matched_categories) != 0:
                 for category in matched_categories:
                     if category in self.reappStrategy.posCategories:
@@ -210,17 +209,17 @@ class Model:
                     if category in self.reappStrategy.negCategories:
                         neg_list.append((word, tag))
                         weights[category] += 1
-        # Determine the correct positive/negative score based on the data. 
+        # Determine the correct positive/negative score based on the data.
         if len(pos_list) == 0:
             # Case where only negative categories exist
             pos_score = 0
             neg_score = 0 if len(neg_list) == 0 else score / len(neg_list)
         elif len(neg_list) == 0:
-            # Case where only positive categories exist 
+            # Case where only positive categories exist
             neg_score = 0
             pos_score = 0 if len(pos_list) == 0 else score / len(pos_list)
         else:
-            # Case where both positive and negative categories exist 
+            # Case where both positive and negative categories exist
             if len(pos_list) == len(neg_list):
                 # Special subcase where there's an equal number of positive and negative categories
                 neg_score = -score / abs(len(pos_list) + len(neg_list))
@@ -230,35 +229,32 @@ class Model:
                 neg_score = -pos_score
         # Obtain the word,tag,score tuple for each positive word
         for word, tag in pos_list:
-            # Check sentiment at word level when analyzing objective distancing. 
-            if self.strat == 'o':
+            # Check sentiment at word level when analyzing objective distancing.
+            if type(self.reappStrategy) == ObjectiveStrategy:
                 self.logger.debug(f'Original: {word} -> {pos_score}')
                 textblob = TextBlob(word).sentiment
-                sentiment = SentimentWrapper(textblob.polarity, textblob.subjectivity)
-                sentiment = normalize_sentiment(sentiment)
-                # sentiment_score = (sentiment.objectivity + sentiment.polarity) / 2
-                # sentiment_score = sentiment.polarity
+                sentiment = sentiment = normalize_sentiment(
+                    textblob.polarity, textblob.subjectivity)
                 sentiment_score = sentiment.objectivity
-                self.logger.debug(f'After Sentiment: {word} -> {pos_score * sentiment_score}')
+                self.logger.debug(
+                    f'After Sentiment: {word} -> {pos_score * sentiment_score}')
                 pos_score *= sentiment_score
             score_list.append((word, tag, pos_score))
         # Obtain the word,tag,score tuple for each negative word
         for word, tag in neg_list:
-            # Check sentiment at word level when analyzing objective distancing. 
-            if self.strat == 'o':
+            # Check sentiment at word level when analyzing objective distancing.
+            if type(self.reappStrategy) == ObjectiveStrategy:
                 self.logger.debug(f'Original: {word} -> {pos_score}')
                 textblob = TextBlob(word).sentiment
-                sentiment = SentimentWrapper(textblob.polarity, textblob.subjectivity)
-                sentiment = normalize_sentiment(sentiment)
-                # sentiment_score = (sentiment.objectivity + sentiment.polarity) / 2
-                # sentiment_score = sentiment.polarity
+                sentiment = sentiment = normalize_sentiment(
+                    textblob.polarity, textblob.subjectivity)
                 sentiment_score = sentiment.objectivity
-
-                self.logger.debug(f'After Sentiment: {word} -> {neg_score * sentiment_score}')
+                self.logger.debug(
+                    f'After Sentiment: {word} -> {neg_score * sentiment_score}')
                 neg_score *= sentiment_score
-            score_list.append((word, tag, neg_score))    
+            score_list.append((word, tag, neg_score))
         # For each category in the weights matrix, get the raw score:
-        #   raw_score = Number of occurrences of the weight * score 
+        #   raw_score = Number of occurrences of the weight * score
         for category in weights:
             if category in self.reappStrategy.posCategories:
                 weights[category] *= pos_score
@@ -267,7 +263,7 @@ class Model:
         # Standardize the weights matrix to include all categories
         standard_weights = self.standardize_weights(dict(weights))
         return standard_weights, score_list
-           
+
     def best_fit_weights(self, weights_list):
         """ Calculates the best fit of the weights and the expected score
         Arguments:
@@ -278,31 +274,20 @@ class Model:
         Returns:
             A single dictionary reprsenting the weights that best fit the data
         """
-        weight_matrix = pd.DataFrame(columns = self.reappStrategy.categories)
+        weight_matrix = pd.DataFrame(columns=self.reappStrategy.categories)
         expected_score = []
-        ### Convert each weight to a vector
+        # Convert each weight to a vector
         for weights_dict, score in weights_list:
-            weights_row = pd.DataFrame([weights_dict], dtype = 'float')
-            ### Add the next row at the bottom of the weights matrix
-            weight_matrix = pd.concat((weight_matrix, weights_row), ignore_index = True, sort = False)
+            weights_row = pd.DataFrame([weights_dict], dtype='float')
+            # Add the next row at the bottom of the weights matrix
+            weight_matrix = pd.concat(
+                (weight_matrix, weights_row), ignore_index=True, sort=False)
             expected_score.append(score)
-        # Calculate the least squares best fit 
-        observed_weights = np.linalg.lstsq(weight_matrix.values, np.array(expected_score, dtype = 'float'), rcond = None)[0]
-        return pd.DataFrame(observed_weights, index = self.reappStrategy.categories).to_dict()[0]
+        # Calculate the least squares best fit
+        observed_weights = np.linalg.lstsq(weight_matrix.values, np.array(
+            expected_score, dtype='float'), rcond=None)[0]
+        return pd.DataFrame(observed_weights, index=self.reappStrategy.categories).to_dict()[0]
 
-
-   
-
-# def most_similar(token):
-#     """Returns the 10 most similar words of the token. 
-#     Arguments:
-#         token {Token} -- Token to be searching for synonyms 
-#     Returns:
-#         list(str)-- string of synonyms for token
-#     """
-#     queries = [t for t in token.vocab if t.is_lower == token.is_lower and t.prob >= -15]
-#     by_similarity = sorted(queries, key=lambda t: token.similarity(t), reverse=True)
-#     return by_similarity[:np.minimum(10, len(by_similarity))]  
 
 ######################
 ## HELPER FUNCTIONS ##
@@ -320,7 +305,7 @@ def extrapolate_data(filename):
         df = df[['Sentence', 'Objective Rating', 'Far Away Rating']]
         df.columns = ['Text Response', "Objectivity Score", "Far Away Score"]
     else:
-        #TODO: check if valid file extension. 
+        # TODO: check if valid file extension.
         df = pd.read_csv(filename)
         df.columns = ['Text Response', "Objectivity Score", "Far Away Score"]
     return df
@@ -335,12 +320,13 @@ def convert_to_wordnet(tag):
         return 'n'
     elif tag in {'VB', 'VBD', 'VBP', 'VBZ', 'v'}:
         return 'v'
-    elif tag in {'a','JJ', 'JJR', 'JJS'}:
+    elif tag in {'a', 'JJ', 'JJR', 'JJS'}:
         return 'a'
     elif tag in {'r', 'RB', 'RBR', 'RBS', 'WRB'}:
         return 'r'
     else:
         return None
+
 
 def get_synonyms(sentence, word, tag=None):
     """
@@ -365,26 +351,26 @@ def get_synonyms(sentence, word, tag=None):
             return []
     return []
 
-def normalize_sentiment(sentiment):
-    """
-        Converts sentiment:
 
-        Polarity ranges from [-1, 1] (By TextBlob API). If the polarity has absolute value 1 (-1 or 1), 
-            then set it to 0.01 to avoid getting a 0 value. 
-            Else, take the negative and add 1 to get the score between [0, 1]. 
-
-        Subjectivity ranges from [0, 1] (By Textblob API). Subtract 1 and get absolute value such that 
-            text closer to 0 have a higher objectivity value. 
-            Else, leave it. 
-
-        High subjectivity/low polarity approaches 1
-        Low subjectivity/high polarity approaches 0
-    """
-    sentiment.polarity = 0.01 if np.abs(sentiment.polarity) == 1 else -np.abs(sentiment.polarity) + 1 
-    sentiment.objectivity = 0.01 if np.abs(sentiment.objectivity) == 1 else np.abs(sentiment.objectivity) + 1
-    # sentiment.subjectivity = 0.01 if sentiment.subjectivity == 1 else -np.abs(sentiment.subjectivity) + 1 
-    return sentiment          
+def normalize_sentiment(polarity, subjectivity):
+    pol = convert_polarity(polarity)
+    obj = convert_subj_to_obj(subjectivity)
+    return SentimentWrapper(pol, obj)
 
 
+def convert_polarity(pol):
+    # Polarity ranges from [-1, 1] (By TextBlob API). If the polarity has absolute value 1 (-1 or 1),
+    #         then set it to 0.01 to avoid getting a 0 value.
+    #         Else, take the negative and add 1 to get the score between [0, 1].
+    if np.abs(pol) == 1:
+        return 0.01
+    return -np.abs(pol) + 1
 
-        
+
+def convert_subj_to_obj(subj):
+    # Subjectivity ranges from [0, 1] (By Textblob API). Subtract 1 and get absolute value such that
+    #         text closer to 0 have a higher objectivity value.
+    #         Else, leave it.
+    if np.abs(subj) == 1:
+        return 0.01
+    return np.abs(subj - 1)

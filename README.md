@@ -1,20 +1,21 @@
 # Linguistic Distancing Model 
 
 ## __Dependencies__ :
-All dependencies are stored in the `venv`folder. To start up the virtual environment:
-- On Windows:
+EDIT 3/19/2020 - Removed ```venv``` support in favor of ```pipenv``` in order to track dependencies without having to generate a ```venv``` folder.
 
- ```shell
- $ .\venv\Scripts\activate
- ```
+Instructions for installation of ```pipenv``` are located [here](https://pipenv.kennethreitz.org/en/latest/install/#installing-pipenv).
 
- -On MacOS/Linux:
- ```bash
- $ source venv/bin/activate
- ```
+Starting up the virtual environment:
 
- This will start a `virtualenv` within the command line preinstalled with dependencies for the model.
- The only requirement that is not installed this way (for Git's storage reasons) are the SpaCy language model files, which are installed on first run of the model if not already installed.
+```shell
+pipenv shell
+```
+Install all dependencies:
+```shell
+pipenv install 
+```
+
+
 
 ## __Running__: 
 

@@ -1,6 +1,5 @@
 from abc import ABCMeta
 from dataclasses import dataclass
-
 import pandas
 import pickle
 
@@ -9,6 +8,8 @@ import os
 
 farAwayFlag = 'spatiotemp'
 objectiveFlag = 'obj'
+
+
 
 def read_liwc_dictionary(filename):
     """

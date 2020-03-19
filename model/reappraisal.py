@@ -1,26 +1,21 @@
-from data_process import reappStrategyFactory, SentimentWrapper
-
-
-from tqdm import tqdm 
-
+import logging
+import os
+import sys
+from collections import defaultdict
+from dataclasses import dataclass
+from datetime import datetime
 
 import numpy as np
 import pandas as pd
-
-from collections import defaultdict
-import logging
-from dataclasses import dataclass
-from datetime import datetime
-import os
-import sys
-
-import spacy 
+import spacy
+from nltk.sentiment import vader
+from nltk.wsd import lesk
 from spacy.lang.en.stop_words import STOP_WORDS
 from spacy.tokens import Doc, Token
 from textblob import TextBlob
+from tqdm import tqdm
 
-from nltk.wsd import lesk
-from nltk.sentiment import vader
+from data_process import SentimentWrapper, reappStrategyFactory
 
 FORMAT = '%(asctime)-15s: %(message)s'
 
@@ -48,17 +43,12 @@ class Model:
         self.reappStrategy = reappStrategy
         self.nlp = nlp
 
-
-    def fit(self):
-        """
-        Fits all of the data given according to the weights of the given strategy's categories. 
-        """
-        self.logger.info(f"Training on {len(self.df)} responses.")
+    def fit(self, responses):
         full_score_list = []
         weights_list = []
         # Iterate through all the rows in the data 
-        with tqdm(total=len(self.df)) as pbar:
-            for index, response, score in self.df.itertuples():
+        with tqdm(total=len(responses)) as pbar:
+            for index, response, score, _ in responses.itertuples():
                 response = response.lower()
                 # Creates a Doc object based on the single response 
                 doc = self.nlp(response)
@@ -98,6 +88,58 @@ class Model:
         self.weights = observed_weights
         self.wordtag_scores = word_scores
         self.logger.info(f"Model trained on {len(self.df)} responses")
+
+
+
+    # def fit(self):
+    #     """
+    #     Fits all of the data given according to the weights of the given strategy's categories. 
+    #     """
+    #     self.logger.info(f"Training on {len(self.df)} responses.")
+    #     full_score_list = []
+    #     weights_list = []
+    #     # Iterate through all the rows in the data 
+    #     with tqdm(total=len(self.df)) as pbar:
+    #         for index, response, score in self.df.itertuples():
+    #             response = response.lower()
+    #             # Creates a Doc object based on the single response 
+    #             doc = self.nlp(response)
+    #             tagged_response = []
+    #             # For each token in the document, add the tagged word to the data, 
+    #             # ignoring stop words and punctuation
+    #             for token in doc:
+    #                 if not token.is_punct: 
+    #                     word = token.lemma_ if token.lemma_ != "-PRON-" else token.text.lower()
+    #                     tag = token.tag_
+    #                     tagged_response.append((tag, word))
+    #             # PROCESS TAGGED RESPONSE 
+    #             # If objective, first multiply the score by the sentiment score
+    #             #   and then fit the words to that modified score.
+
+    #             # If analyzing objective response, gets the sentiment scores of the sentence
+    #             # and adjust tagged score proportionally. 
+    #             # See normalize_sentiment() for normalization procedures. 
+    #             if self.strat == "o":
+    #                 sentiment = SentimentWrapper(doc._.sentiment.polarity, doc._.sentiment.subjectivity)
+    #                 sentiment = normalize_sentiment(sentiment)
+    #                 # sentiment_proportion = (sentiment.objectivity + sentiment.polarity) / 2
+    #                 # sentiment_proportion = sentiment.polarity
+    #                 sentiment_proportion = sentiment.objectivity
+    #                 self.logger.debug(f'Old Score: {score}, New Score: {score * sentiment_proportion}')
+    #                 score *= sentiment_proportion
+    #             # After sentence sentiment is taken into account, fit the scores at the word level.
+    #             # Returns the weights dictionary of the principal components and a list of word-score tuples. 
+    #             weights, score_list = self.fit_word_scores(tagged_response, score)
+    #             full_score_list.append(score_list)
+    #             weights_list.append((weights, score))
+    #             pbar.update(1)
+    #     # Collapses each word score list into a dictionary.
+    #     # Calculates least squares best fit of weights.
+    #     word_scores = self.get_scoring_bank(full_score_list)
+    #     observed_weights = self.best_fit_weights(weights_list)
+    #     self.weights = observed_weights
+    #     self.wordtag_scores = word_scores
+    #     self.logger.info(f"Model trained on {len(self.df)} responses")
 
     def predict(self, text: str):
         """
@@ -384,7 +426,3 @@ def normalize_sentiment(sentiment):
     sentiment.objectivity = 0.01 if np.abs(sentiment.objectivity) == 1 else np.abs(sentiment.objectivity) + 1
     # sentiment.subjectivity = 0.01 if sentiment.subjectivity == 1 else -np.abs(sentiment.subjectivity) + 1 
     return sentiment          
-
-
-
-        

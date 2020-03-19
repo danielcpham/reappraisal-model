@@ -1,7 +1,0 @@
-[ROOT-INFO]: 2019-07-22 01:18:41,894: Testing Notes: Objectivity Trained, Sentiment: Sentence and Word - Polar
-[ROOT-INFO]: 2019-07-22 01:18:41,895: Objective Analysis Initialized
-[REAPPRAISAL-INFO]: 2019-07-22 01:18:59,029: spaCy Library Loaded
-[REAPPRAISAL-INFO]: 2019-07-22 01:19:46,252: Model trained on 2111 responses
-[ROOT-INFO]: 2019-07-22 01:19:46,554: 134 responses added for testing
-[ROOT-INFO]: 2019-07-22 01:19:51,883: Testing Complete
-[ROOT-INFO]: 2019-07-22 01:19:51,885: Correlation: 0.02679118416513116

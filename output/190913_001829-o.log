@@ -1,7 +1,0 @@
-[ROOT-INFO]: 2019-09-13 00:18:29,576: Testing Notes: Objectivity Trained, Sentiment: Word, Objectivity
-[ROOT-INFO]: 2019-09-13 00:18:29,585: Objective Analysis Initialized
-[REAPPRAISAL-INFO]: 2019-09-13 00:18:49,625: spaCy Library Loaded
-[REAPPRAISAL-INFO]: 2019-09-13 00:20:01,878: Model trained on 2111 responses
-[ROOT-INFO]: 2019-09-13 00:20:11,880: 134 responses added for testing
-[ROOT-INFO]: 2019-09-13 00:20:35,435: Testing Complete
-[ROOT-INFO]: 2019-09-13 00:20:35,441: Correlation: 0.2625265705838193

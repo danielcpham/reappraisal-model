@@ -19,28 +19,37 @@ from reappraisal import (Model, SentimentWrapper, extrapolate_data,
 
 import argparse
 
+# Parse the arguments passed into the command line.
+parser = argparse.ArgumentParser()
+reapp_group = parser.add_mutually_exclusive_group()
+reapp_group.add_argument(
+    "-f", "--farAway", help="reappraise using far-away distancing", action='store_true')
+reapp_group.add_argument(
+    "-o", "--objective", help="reappraise using objective distancing", action="store_true")
+args = parser.parse_args()
+if args.farAway:
+    reappStrategy = reappStrategyFactory('spatiotemp')
+elif args.objective:
+    reappStrategy = reappStrategyFactory('obj')
+else:
+    parser.exit(
+        "Error: Please specify either far-away distancing (-f) or objective distancing (-o)")
+
 
 def main():
-    strat = None
     verbose = False
     test = False
 
-    parser = argparse.ArgumentParser()
-    
-    parser.parse_args()
-
-    for arg in sys.argv[1:]:
-        if arg == "-v":
-            verbose = True
-        elif arg == "-f":
-            strat = "f"
-        elif arg == "-o":
-            strat = "o"
-        elif arg == '-t':
-            test = True
-    if not strat:
-        strat = input(
-            "Press f to initiate a far-away model. Press o to initiate an objectivity model.")
+    # for arg in sys.argv[1:]:
+    #     elif arg == "-f":
+    #         strat = "f"
+    #     elif arg == "-o":
+    #         strat = "o"
+    #     elif arg == '-t':
+    #         test = True
+    # if not strat:
+    #     strat = input(
+    #         "Press f to initiate a far-away model. Press o to initiate an objectivity model.")
 
     logger = logging.getLogger("MAIN")
     formatter = logging.Formatter(
@@ -61,13 +70,11 @@ def main():
     # Remove invalid data
     data = data.dropna()
     # Create the reappraisal strategy and drop the other column
-    if strat == 'f':
+    if args.farAway:
         data = data.drop('Objectivity Score', axis='columns')
-        reappStrategy = reappStrategyFactory('spatiotemp')
         logger.info("Initializing Far Away Model.")
-    if strat == 'o':
+    if args.objective:
         data = data.drop('Far Away Score', axis='columns')
-        reappStrategy = reappStrategyFactory('obj')
         logger.info("Initializing Objectivity Model.")
         Doc.set_extension(
             "sentiment", getter=lambda doc: TextBlob(doc.text).sentiment)

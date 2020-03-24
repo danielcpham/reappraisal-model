@@ -1,15 +1,19 @@
 from abc import ABCMeta
 from dataclasses import dataclass
-import pandas
+import pandas as pd
 import pickle
-
-
 import os
 
 farAwayFlag = 'spatiotemp'
 objectiveFlag = 'obj'
 
-
+def data_partition(data: pd.DataFrame, frac):
+    # Split data into training data and testing data.
+    data_train = data.sample(frac=frac)
+    # Takes test data to be the difference of the full data and the training data.
+    data_test = data[~data.apply(tuple, 1).isin(
+        data_train.apply(tuple, 1))]
+    return data_train, data_test
 
 def read_liwc_dictionary(filename):
     """
@@ -17,23 +21,15 @@ def read_liwc_dictionary(filename):
     :return: wordbank
     """
     wordbank = {}
-    df = pandas.read_excel(open(filename, 'rb'))
+    df = pd.read_excel(open(filename, 'rb'))
     for column_name in df.columns:
         wordbank[column_name] = list(df[column_name].dropna())
-    # ###FORMATTING
-    # for bank in wordbank:
-    #     wordbank[bank] = map(lambda x: x.decode().encode('ascii'), wordbank[bank])
+
     return wordbank
 
 cwd = os.getcwd()
 wordbank = read_liwc_dictionary(cwd + "/input/data/WordBank - LIWC2007.xlsx")
 
-
-# ###Pickle Functions
-# def save_object(obj, filename):
-#     with open(filename, 'wb') as output:  # Overwrites any existing file.
-#         pickle.dump(obj, output, pickle.HIGHEST_PROTOCOL)
-#         output.close()
 
 
 class Strategy(metaclass= ABCMeta):

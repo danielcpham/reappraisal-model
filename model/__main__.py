@@ -10,7 +10,7 @@ import spacy
 from textblob import TextBlob
 from tqdm import tqdm
 
-from data_process import reappStrategyFactory
+from model.data_process import reappStrategyFactory, data_partition
 from reappraisal import (Model, SentimentWrapper, extrapolate_data,
                          normalize_sentiment)
 
@@ -77,15 +77,11 @@ def main():
     correls = pd.Series(correls)
     print(correls.describe())
     
-def run(data, nlp):
-    # Split data into training data and testing data.
-    data_train = data.sample(frac=0.85)
-    # Takes test data to be the difference of the full data and the training data.
-    data_test = data[~data.apply(tuple, 1).isin(
-        data_train.apply(tuple, 1))]
+def run(data, nlp, reappStrategy):
+    data_train, data_test = data_partition(data, frac=0.9)
     data_test.columns = data.columns
-    data_train.reset_index(drop=True, inplace=True)
-    data_test.reset_index(drop=True, inplace=True)
+    # data_train.reset_index(drop=True, inplace=True)
+    # data_test.reset_index(drop=True, inplace=True)
 
     # Create reappraisal model and fit training data
     model = Model(nlp, reappStrategy)

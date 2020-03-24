@@ -17,7 +17,7 @@ from textblob import TextBlob
 from tqdm import tqdm
 import pdb
 
-from data_process import (
+from model.data_process import (
     SentimentWrapper, reappStrategyFactory, ObjectiveStrategy, SpatioTempStrategy)
 
 FORMAT = '%(asctime)-15s: %(message)s'

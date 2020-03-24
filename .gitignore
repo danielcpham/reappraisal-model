@@ -1,6 +1,8 @@
 # Don't track content of these folders
-/venv/Lib/site-packages/en_core_web_md
-/venv/Lib/site-packages/en_core_web_md-2.1.0-py3.7.egg-info
-**/__pycache__/**
-**/.vscode
+.vscode/**
+.vs/**
 output/**
+**/__pycache__/**
+input/deprecate/**
+input/data/Participant Tracked Data/**
+input/data/Text Excerpts/**

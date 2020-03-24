@@ -5,14 +5,9 @@ EDIT 3/19/2020 - Removed ```venv``` support in favor of ```pipenv``` in order to
 
 Instructions for installation of ```pipenv``` are located [here](https://pipenv.kennethreitz.org/en/latest/install/#installing-pipenv).
 
-Starting up the virtual environment:
-
+Starting up the virtual environment and install all dependencies:
 ```shell
-pipenv shell
-```
-Install all dependencies:
-```shell
-pipenv install 
+pipenv --python /usr/bin/python3
 ```
 
 
@@ -27,8 +22,7 @@ python model -args
 ### Additional Arguments:
 - ```-f ``` - Far Away Analysis - Flag to enable analysis for far away/spatiotemporal distancing. 
 - ```-o ``` - Objectivity Analysis - Flag to enable analysis for objective distancing. 
-    - Note that the ``` -f/-o``` flags should be mutually exclusive; the script is currently incapable of analyzing far away distancing and objective distancing simultaneously. 
-- ```-v ``` : verbose - Flag to enable debug logging. 
+
 
 
 

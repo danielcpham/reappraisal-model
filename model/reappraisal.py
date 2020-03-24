@@ -17,7 +17,7 @@ from textblob import TextBlob
 from tqdm import tqdm
 import pdb
 
-from model.data_process import (
+from data_process import (
     SentimentWrapper, reappStrategyFactory, ObjectiveStrategy, SpatioTempStrategy)
 
 FORMAT = '%(asctime)-15s: %(message)s'
@@ -303,11 +303,10 @@ def extrapolate_data(filename):
     if 'xlsx' in filename:
         df = pd.read_excel(filename)
         df = df[['Sentence', 'Objective Rating', 'Far Away Rating']]
-        df.columns = ['Text Response', "Objectivity Score", "Far Away Score"]
     else:
         # TODO: check if valid file extension.
         df = pd.read_csv(filename)
-        df.columns = ['Text Response', "Objectivity Score", "Far Away Score"]
+    df.columns = [['response', 'score_spatiotemp', 'score_obj']]
     return df
 
 

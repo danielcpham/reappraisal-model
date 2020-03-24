@@ -36,6 +36,7 @@ class Strategy(metaclass= ABCMeta):
     """
     Defines a common class for Reappraisal Strategies.
     """
+    name = "generic"
     categories = set([])
     posCategories = set([])
     negCategories = set([])
@@ -45,7 +46,7 @@ class Strategy(metaclass= ABCMeta):
         pass
 
 class SpatioTempStrategy(Strategy):
-
+    name = farAwayFlag
     discrep = wordbank['Discrepancy Words']
     pos_space = wordbank['Pos Space']
     neg_space = wordbank['Neg Space']
@@ -100,7 +101,7 @@ class SpatioTempStrategy(Strategy):
 
 
 class ObjectiveStrategy(Strategy):
-
+    name = objectiveFlag
     discrep = wordbank['Discrepancy Words']
     pos_articles = wordbank['Pos Obj Articles']
     neg_articles = wordbank['Neg Obj Articles']

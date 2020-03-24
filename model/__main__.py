@@ -10,27 +10,23 @@ import spacy
 from textblob import TextBlob
 from tqdm import tqdm
 
-from model.data_process import reappStrategyFactory, data_partition
+
+from data_process import reappStrategyFactory, data_partition
 from reappraisal import (Model, SentimentWrapper, extrapolate_data,
                          normalize_sentiment)
 
 # Parse the arguments passed into the command line.
 parser = argparse.ArgumentParser()
-reapp_group = parser.add_mutually_exclusive_group()
-reapp_group.add_argument(
+parser.add_argument(
     "-f", "--farAway", help="reappraise using far-away distancing", action='store_true')
-reapp_group.add_argument(
+parser.add_argument(
     "-o", "--objective", help="reappraise using objective distancing", action="store_true")
 args = parser.parse_args()
-if args.farAway:
-    reappStrategy = reappStrategyFactory('spatiotemp')
-elif args.objective:
-    reappStrategy = reappStrategyFactory('obj')
-else:
+if not (args.farAway or args.objective):
     parser.exit(
         "Error: Please specify either far-away distancing (-f) or objective distancing (-o)")
-    
-# Load english language model. 
+
+# Load english language model.
 nlp = spacy.load("en_core_web_sm")
 
 # Set logger.
@@ -48,40 +44,36 @@ logger.addHandler(ch)
 def main():
     # Read training data
     cwd = os.getcwd()
+    print(cwd)
     data = pd.DataFrame(
-        columns=['Text Response', "Objectivity Score", "Far Away Score"])
+        columns=[['response', 'score_spatiotemp', 'score_obj']])
     for filename in os.listdir(cwd + "/input/training"):
         data = pd.concat([data, extrapolate_data(
             cwd + "/input/training/" + filename).dropna()], axis=0)
+        logger.info(f'Added {filename} to training.')
     # Remove invalid data
     data = data.dropna()
-    # Create the reappraisal strategy and drop the other column
-    if args.farAway:
-        data = data.drop('Objectivity Score', axis='columns')
-        logger.info("Initializing Far Away Model.")
-    if args.objective:
-        data = data.drop('Far Away Score', axis='columns')
-        logger.info("Initializing Objectivity Model.")
-    # Rename the columns in the data.
-    data.columns = ['response', 'score']
+    data.reset_index(drop=True, inplace=True)
 
-    # Bootstrapping
-    correls = []
-    # TODO: create a blank model that can be referred to.
-    for i in range(10):
-        # Test Data Analysis:
-        # Run a round of fit -> predict, and get the statistics. 
-        correl, _ = run(data, nlp)
-        logger.info(f"Correlation for run {i + 1}: {correl}")
-        correls.append(correl)
-    correls = pd.Series(correls)
-    print(correls.describe())
-    
-def run(data, nlp, reappStrategy):
+    # Partition the Data manually.
     data_train, data_test = data_partition(data, frac=0.9)
-    data_test.columns = data.columns
-    # data_train.reset_index(drop=True, inplace=True)
-    # data_test.reset_index(drop=True, inplace=True)
+
+    # Run train -> test on objective distancing
+    if args.objective:
+        correl_obj, _ = run(data_train[['response', 'score_obj']], data_test[[
+            'response', 'score_obj']], nlp, reappStrategyFactory('obj'))
+
+        logger.info(f"Correlation for objective distancing: {correl_obj}")
+    if args.farAway:
+        # Run train -> test on far away distancing
+        correl_spatiotemp, _ = run(data_train[['response', 'score_spatiotemp']], data_test[[
+            'response', 'score_spatiotemp']], nlp, reappStrategyFactory('spatiotemp'))
+
+        logger.info(
+            f"Correlation for Far Away distancing: {correl_spatiotemp}")
+
+
+def run(data_train, data_test, nlp, reappStrategy):
 
     # Create reappraisal model and fit training data
     model = Model(nlp, reappStrategy)
@@ -98,7 +90,11 @@ def run(data, nlp, reappStrategy):
             _, score = model.predict(response)
             data_test.at[index, 'observed'] = score
             pbar.update(1)
-    correl = data_test['observed'].corr(data_test['score'])
+
+    correl = data_test['observed'].corr(
+        data_test[f"score_{reappStrategy.name}"])
+    data_test.to_csv(
+        f"output/data_test_results_{reappStrategy.name}.csv", index_label="Serial")
     return correl, data_test
 
 

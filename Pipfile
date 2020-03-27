@@ -34,4 +34,3 @@ xlrd = "==1.2.0"
 pdb = "*"
 
 [requires]
-python_version = "3.7"

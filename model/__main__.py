@@ -2,6 +2,7 @@ import argparse
 import logging
 import os
 import sys
+import pdb
 
 import en_core_web_sm
 import numpy as np
@@ -10,7 +11,7 @@ import spacy
 from textblob import TextBlob
 from tqdm import tqdm
 
-
+import data_process
 from data_process import reappStrategyFactory, data_partition
 from reappraisal import (Model, SentimentWrapper, extrapolate_data,
                          normalize_sentiment)
@@ -57,6 +58,8 @@ def main():
 
     # Partition the Data manually.
     data_train, data_test = data_partition(data, frac=0.9)
+    data_train.to_csv("output/data_train_fixed.csv")
+    data_test.to_csv("output/data_test_fixed.csv")
 
     # Run train -> test on objective distancing
     if args.objective:
@@ -75,13 +78,15 @@ def main():
 
 def run(data_train, data_test, nlp, reappStrategy):
 
+    # format test data
+    data_test.insert(2, 'observed', [-1.0] * len(data_test))
+
     # Create reappraisal model and fit training data
     model = Model(nlp, reappStrategy)
     model.fit(data_train)
 
     logger.info(f"Testing {len(data_test)} responses.")
     # Create a new column for observed scores.
-    data_test.insert(2, 'observed', [np.nan] * len(data_test))
     with tqdm(total=len(data_test)) as pbar:
         for index, response, score, _ in data_test.itertuples():
             # Using the trained model, predict the score of the response, and return the sentence
@@ -90,11 +95,12 @@ def run(data_train, data_test, nlp, reappStrategy):
             _, score = model.predict(response)
             data_test.at[index, 'observed'] = score
             pbar.update(1)
-
-    correl = data_test['observed'].corr(
-        data_test[f"score_{reappStrategy.name}"])
-    data_test.to_csv(
-        f"output/data_test_results_{reappStrategy.name}.csv", index_label="Serial")
+    data_test.to_csv(f"output/data_test_results_{reappStrategy.name}.csv")
+    # if reappStrategy.name == data_process.farAwayFlag:
+    #     correl = data_test['observed'].corr(data_test['score_spatiotemp'])
+    # elif reappStrategy.name == data_process.objectiveFlag:
+    #     correl = data_test['observed'].corr(data_test['score_obj'])
+    correl = 0
     return correl, data_test
 
 

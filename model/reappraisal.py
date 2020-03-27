@@ -1,10 +1,9 @@
 import logging
 import os
+import pdb
 import sys
 from collections import defaultdict
 from dataclasses import dataclass
-from spacy.tokens import Doc
-
 
 import numpy as np
 import pandas as pd
@@ -15,10 +14,9 @@ from spacy.lang.en.stop_words import STOP_WORDS
 from spacy.tokens import Doc, Token
 from textblob import TextBlob
 from tqdm import tqdm
-import pdb
 
-from data_process import (
-    SentimentWrapper, reappStrategyFactory, ObjectiveStrategy, SpatioTempStrategy)
+from data_process import (ObjectiveStrategy, SentimentWrapper,
+                          SpatioTempStrategy, reappStrategyFactory)
 
 FORMAT = '%(asctime)-15s: %(message)s'
 

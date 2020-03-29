@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "31b895458a2383e0aeaae7c90c84a0515995eea54dc14f4f92fb6897e102a1a5"
+            "sha256": "dc6ddba9fdb61cc026d0d8e4b18580b70924cf6f0fd4c1a7266b14506beb9c49"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -80,6 +80,15 @@
             "index": "pypi",
             "version": "==2.0.2"
         },
+        "en-core-web-sm": {
+            "file": "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-2.2.0/en_core_web_sm-2.2.0.tar.gz"
+        },
+        "et-xmlfile": {
+            "hashes": [
+                "sha256:614d9722d572f6246302c4491846d2c393c199cfa4edc9af593437691683335b"
+            ],
+            "version": "==1.0.1"
+        },
         "idna": {
             "hashes": [
                 "sha256:c357b3f628cf53ae2c4c05627ecc484553142ca23264e593d327bcde5e9c3407",
@@ -87,6 +96,13 @@
             ],
             "index": "pypi",
             "version": "==2.8"
+        },
+        "jdcal": {
+            "hashes": [
+                "sha256:1abf1305fce18b4e8aa248cf8fe0c56ce2032392bc64bbd61b5dff2a19ec8bba",
+                "sha256:472872e096eb8df219c23f2689fc336668bdb43d194094b5cc1707e1640acfc8"
+            ],
+            "version": "==1.4.1"
         },
         "murmurhash": {
             "hashes": [
@@ -145,6 +161,13 @@
             ],
             "index": "pypi",
             "version": "==1.16.4"
+        },
+        "openpyxl": {
+            "hashes": [
+                "sha256:547a9fc6aafcf44abe358b89ed4438d077e9d92e4f182c87e2dc294186dc4b64"
+            ],
+            "index": "pypi",
+            "version": "==3.0.3"
         },
         "pandas": {
             "hashes": [
@@ -346,11 +369,11 @@
         },
         "importlib-metadata": {
             "hashes": [
-                "sha256:06f5b3a99029c7134207dd882428a66992a9de2bef7c2b699b5641f9886c3302",
-                "sha256:b97607a1a18a5100839aec1dc26a1ea17ee0d93b20b0f008d80a5a050afb200b"
+                "sha256:2a688cbaa90e0cc587f1df48bdc97a6eadccdcd9c35fb3f976a09e3b5016d90f",
+                "sha256:34513a8a0c4962bc66d35b359558fd8a5e10cd472d37aec5f66858addef32c1e"
             ],
             "markers": "python_version < '3.8'",
-            "version": "==1.5.0"
+            "version": "==1.6.0"
         },
         "more-itertools": {
             "hashes": [

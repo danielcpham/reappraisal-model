@@ -5,6 +5,8 @@ verify_ssl = true
 
 [dev-packages]
 pytest = "*"
+jupyter = "*"
+jupyterlab = "*"
 
 [packages]
 blis = "==0.2.4"

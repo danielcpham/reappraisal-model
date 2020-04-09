@@ -15,9 +15,11 @@ from spacy.tokens import Doc, Token
 from textblob import TextBlob
 from tqdm import tqdm
 
-from utils import (normalize_sentiment, convert_polarity, convert_subj_to_obj, convert_to_wordnet)
+from utils import (normalize_sentiment, convert_polarity,
+                   convert_subj_to_obj, convert_to_wordnet)
 
-from data_process import (ObjectiveStrategy,SpatioTempStrategy, reappStrategyFactory)
+from data_process import (
+    ObjectiveStrategy, SpatioTempStrategy, reappStrategyFactory)
 
 FORMAT = '%(asctime)-15s: %(message)s'
 
@@ -105,6 +107,8 @@ class Model:
             Total score of the response
         """
         scored_sentence = []
+        if type(text) != str:
+            return [], np.nan
         doc = self.nlp(text)
         for token in doc:
             word = token.lemma_ if token.lemma_ != "-PRON-" else token.text.lower()
@@ -309,8 +313,6 @@ def extrapolate_data(filename):
     return df
 
 
-
-
 def get_synonyms(sentence, word, tag=None):
     """
     :param: sentence: sentence with which to grab context, respresented as a list of words
@@ -333,6 +335,3 @@ def get_synonyms(sentence, word, tag=None):
         else:
             return []
     return []
-
-
-

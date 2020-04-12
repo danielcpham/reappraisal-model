@@ -4,6 +4,7 @@ import pdb
 import sys
 from collections import defaultdict
 from dataclasses import dataclass
+from datetime import datetime
 
 import numpy as np
 import pandas as pd
@@ -47,13 +48,18 @@ class Model:
                 "sentiment", getter=lambda doc: TextBlob(doc.text).sentiment)
         self.nlp = nlp
 
-    def fit(self, responses):
+    def export_metadata(self):
+        time = datetime.now()
+        reapp_name = self.reappStrategy.name
+        return time, reapp_name, self.wordtag_scores, self.weights
+
+    def fit(self, responses, scores):
         full_score_list = []
         weights_list = []
         self.logger.info(f"Training on {len(responses)} responses.")
         # Iterate through all the rows in the data
         with tqdm(total=len(responses)) as pbar:
-            for _, response, score in responses.itertuples():
+            for response, score in zip(responses, scores):
                 response = response.lower()
                 # self.logger.info(response)
                 # Creates a Doc object based on the single response
@@ -73,8 +79,6 @@ class Model:
                 # If analyzing objective response, gets the sentiment scores of the sentence
                 # and adjust tagged score proportionally
                 # See normalize_sentiment() for normalization procedures.
-                # self.logger.info(doc)
-                # pdb.set_trace()
                 if type(self.reappStrategy) == ObjectiveStrategy:
                     sentiment = normalize_sentiment(
                         doc._.sentiment.polarity, doc._.sentiment.subjectivity)

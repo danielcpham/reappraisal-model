@@ -19,13 +19,14 @@ from reappraisal import (Model, extrapolate_data,
 
 # Parse the arguments passed into the command line.
 parser = argparse.ArgumentParser()
-parser.add_argument('-e', "--eval", help="Specify a path of a csv or excel to be evaluated. Add if you're not testing for correlation of testing data and just want results.")
+parser.add_argument(
+    '-e', "--eval", help="Specify a path of a csv or excel to be evaluated. Add if you're not testing for correlation of testing data and just want results.")
 parser.add_argument(
     "-f", "--farAway", help="Reappraise using far-away distancing", action='store_true')
 parser.add_argument(
     "-o", "--objective", help="Reappraise using objective distancing", action="store_true")
 parser.add_argument(
-    '-s', '--save-model', help='Specify a location to save the model once it has been trained')
+    '-s', '--saveModel', help='Specify a location to save the model once it has been trained')
 parser.add_argument('-l', '--load-model',
                     help='Specify a previously trained model to be loaded.')
 parser.add_argument(
@@ -54,7 +55,6 @@ logger.addHandler(ch)
 nlp = en_core_web_sm.load()
 
 
-
 def main():
     # Read training data
     cwd = os.getcwd()
@@ -73,7 +73,6 @@ def main():
             correl_obj, test_res_obj = run(
                 data_train, data_test, nlp, reappStrategyFactory('obj'))
             logger.info(f"Correlation for objective distancing: {correl_obj}")
-            print(test_res_obj)
             test_res_obj.to_excel(writer, sheet_name='objective', index=False)
         if args.farAway:
             # Run train -> test on far away distancing
@@ -92,13 +91,13 @@ def run(data_train: pd.DataFrame, data_test: pd.DataFrame, nlp, reappStrategy):
         "Please enter the name of the column containing the sentences: ")
     score_col = input(
         "Please enter the name of the column containing the scores to be trained against: ")
-    
+
     # Create reappraisal model and fit training data
     model = Model(nlp, reappStrategy)
     model.fit(data_train[response_col], data_train[score_col])
 
     # TODO: add metadata saving here
-    if args.save:
+    if args.saveModel:
         print("PICKLING TBD")
 
     # Prompt user to submit column names for sentences.
@@ -107,17 +106,17 @@ def run(data_train: pd.DataFrame, data_test: pd.DataFrame, nlp, reappStrategy):
         "Please enter the name of the column containing the sentences to be evaluated: ")
     if not args.eval:
         score_col_test = input(
-            "Please enter the name of the column containing the scores to test the model against:")
+            "Please enter the name of the column containing the scores to test the model against: ")
 
     # format test data
     logger.info(f"Testing {len(data_test)} responses.")
     data_test['response'] = data_test[response_col_test]
-    tqdm.pandas() # Starts progress bar for prediction. 
+    tqdm.pandas()  # Starts progress bar for prediction.
     data_test['observed'] = data_test.progress_apply(
         lambda row: model.predict(row.response)[1], axis=1)
     if not args.eval:
         correl = data_test['observed'].corr(data_test[score_col_test])
-    else: 
+    else:
         correl = np.nan
     data_test.index.name = 'serial'
     return correl, data_test

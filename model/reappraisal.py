@@ -47,33 +47,9 @@ class Model:
             Doc.set_extension(
                 "sentiment", getter=lambda doc: TextBlob(doc.text).sentiment)
         self.nlp = nlp
-        
-    def __init__(self, nlp, metadata):
-        self.logger = logging.getLogger("REAPPRAISAL")
-        self.logger.setLevel(logging.DEBUG)
-        formatter = logging.Formatter(
-            '[%(name)s-%(levelname)s]: %(asctime)-15s: %(message)s')
-
-        ch = logging.StreamHandler(sys.stdout)
-        ch.setFormatter(formatter)
-        ch.setLevel(logging.INFO)
-        if not len(self.logger.handlers):
-            self.logger.addHandler(ch)
-        
-        # TODO: replace initalization with saved data from metadata. 
-        self.wordtag_scores = {}
-        self.weights = {}
-        self.reappStrategy = reappStrategyFactory('obj') # TODO: replace with the name of the reappStrategy
-        if type(reappStrategy) == ObjectiveStrategy:
-            Doc.set_extension(
-                "sentiment", getter=lambda doc: TextBlob(doc.text).sentiment)
-        self.nlp = nlp
-        
-        
-        
 
     def export_metadata(self):
-        # Export a tuple of metadata of the model to be regenerated later. 
+        # Export a tuple of metadata of the model to be regenerated later.
         time = datetime.now()
         reapp_name = self.reappStrategy.name
         return time, reapp_name, self.wordtag_scores, self.weights
@@ -365,6 +341,7 @@ def get_synonyms(sentence, word, tag=None):
             return []
     return []
 
+
 @dataclass
 class ModelMetadata:
     time: datetime
@@ -372,4 +349,3 @@ class ModelMetadata:
     weights: dict
     reappStrategy: str
     data: []
-    

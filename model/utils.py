@@ -39,3 +39,4 @@ def convert_subj_to_obj(subj):
     if np.abs(subj) == 1:
         return 0.01
     return np.abs(subj - 1)
+

@@ -4,13 +4,13 @@ import os
 import sys
 import pdb
 
-
 import numpy as np
 import pandas as pd
 import spacy
 import en_core_web_sm
 from textblob import TextBlob
 from tqdm import tqdm
+import pickle
 
 import data_process
 from data_process import reappStrategyFactory, data_partition, SentimentWrapper
@@ -19,25 +19,21 @@ from reappraisal import (Model, extrapolate_data,
 
 # Parse the arguments passed into the command line.
 parser = argparse.ArgumentParser()
-parser.add_argument('-e', "--eval", help="specify data to be evaluated")
+parser.add_argument('-e', "--eval", help="Specify a path of a csv or excel to be evaluated. Add if you're not testing for correlation of testing data and just want results.")
 parser.add_argument(
-    "-f", "--farAway", help="reappraise using far-away distancing", action='store_true')
+    "-f", "--farAway", help="Reappraise using far-away distancing", action='store_true')
 parser.add_argument(
-    "-o", "--objective", help="reappraise using objective distancing", action="store_true")
+    "-o", "--objective", help="Reappraise using objective distancing", action="store_true")
 parser.add_argument(
-    '-s', '--save-model', help='specify a location to save the model once it has been trained')
+    '-s', '--save-model', help='Specify a location to save the model once it has been trained')
 parser.add_argument('-l', '--load-model',
-                    help='specify a previously trained model to be loaded.')
+                    help='Specify a previously trained model to be loaded.')
 parser.add_argument(
     "-d", "--dev", help="Used to print debug statements", action='store_true')
 args = parser.parse_args()
 if not (args.farAway or args.objective):
     parser.exit(
         "Error: Please specify either far-away distancing (-f) or objective distancing (-o)")
-
-
-# Load english language model.
-nlp = en_core_web_sm.load()
 
 formatter = logging.Formatter(
     '[%(name)s-%(levelname)s]: %(asctime)-15s: %(message)s')
@@ -54,14 +50,17 @@ logger.setLevel(logging.DEBUG)
 logger.addHandler(ch)
 
 
+# Load english language model.
+nlp = en_core_web_sm.load()
+
+
+
 def main():
     # Read training data
     cwd = os.getcwd()
-    tqdm.pandas()
     # Generate dataframe for test data
     # If eval is an argument, just train the model and run it on the specified data
     data_train = pd.read_csv('output/data_train_fixed.csv')
-    data_train = data_train.sample(1)
     if args.eval:
         data_test = pd.read_csv(args.eval)
     else:
@@ -99,8 +98,8 @@ def run(data_train: pd.DataFrame, data_test: pd.DataFrame, nlp, reappStrategy):
     model.fit(data_train[response_col], data_train[score_col])
 
     # TODO: add metadata saving here
-    # if args.save:
-    #     print(model.export_metadata())
+    if args.save:
+        print("PICKLING TBD")
 
     # Prompt user to submit column names for sentences.
     print(f"Test Data Columns: {list(data_test.columns)}")
@@ -113,6 +112,7 @@ def run(data_train: pd.DataFrame, data_test: pd.DataFrame, nlp, reappStrategy):
     # format test data
     logger.info(f"Testing {len(data_test)} responses.")
     data_test['response'] = data_test[response_col_test]
+    tqdm.pandas() # Starts progress bar for prediction. 
     data_test['observed'] = data_test.progress_apply(
         lambda row: model.predict(row.response)[1], axis=1)
     if not args.eval:

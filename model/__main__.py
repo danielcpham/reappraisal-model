@@ -60,11 +60,11 @@ def main():
     cwd = os.getcwd()
     # Generate dataframe for test data
     # If eval is an argument, just train the model and run it on the specified data
-    data_train = pd.read_csv('output/data_train_fixed.csv')
+    data_train = pd.read_csv('eval/data_train_fixed.csv')
     if args.eval:
         data_test = pd.read_csv(args.eval)
     else:
-        data_test = pd.read_csv('output/data_test_fixed.csv')
+        data_test = pd.read_csv('eval/data_test_fixed.csv')
 
     with pd.ExcelWriter("output/results.xlsx") as writer:
         # Run train -> test on objective distancing

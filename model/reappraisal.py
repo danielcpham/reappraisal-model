@@ -66,8 +66,7 @@ class Model:
                 # Creates a Doc object based on the single response
                 doc = self.nlp(response)
                 tagged_response = []
-                # For each token in the document, add the tagged word to the data,
-                # ignoring stop words and punctuation
+                # For each token in the document, add the tagged word to the data
                 for token in doc:
                     if not token.is_punct:
                         word = token.lemma_ if token.lemma_ != "-PRON-" else token.text.lower()

@@ -3,9 +3,9 @@
 .vs/**
 output/**
 **/__pycache__/**
-input/deprecate/**
-input/data/Participant Tracked Data/**
-input/data/Text Excerpts/**
+**/input/**
+**/ipynb_checkpoints/**
+
 
 LDH_Task_LD_LF_121219_process.ipynb
 LDH_Task_LD_LF_121219.xlsx

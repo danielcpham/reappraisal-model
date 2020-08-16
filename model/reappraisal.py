@@ -52,7 +52,7 @@ class Model:
         # Export a tuple of metadata of the model to be regenerated later.
         time = datetime.now()
         reapp_name = self.reappStrategy.name
-        return time, reapp_name, self.wordtag_scores, self.weights
+        return ModelMetadata(time, self.wordtag_scores, self.weights, reapp_name, [])
 
     def fit(self, responses, scores):
         full_score_list = []

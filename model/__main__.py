@@ -3,6 +3,8 @@ import logging
 import os
 import sys
 import pdb
+import json
+import pprint
 
 import numpy as np
 import pandas as pd
@@ -15,7 +17,7 @@ import pickle
 import data_process
 from data_process import reappStrategyFactory, data_partition, SentimentWrapper
 from reappraisal import (Model, extrapolate_data,
-                         normalize_sentiment)
+                         normalize_sentiment, ModelMetadata)
 
 # Parse the arguments passed into the command line.
 parser = argparse.ArgumentParser()
@@ -65,6 +67,9 @@ def main():
         data_test = pd.read_csv(args.eval)
     else:
         data_test = pd.read_csv('eval/data_test_fixed.csv')
+
+    if not os.path.isdir("output"):
+        os.makedirs("output")
 
     with pd.ExcelWriter("output/results.xlsx") as writer:
         # Run train -> test on objective distancing
@@ -119,6 +124,14 @@ def run(data_train: pd.DataFrame, data_test: pd.DataFrame, nlp, reappStrategy):
     else:
         correl = np.nan
     data_test.index.name = 'serial'
+
+    metadata = model.export_metadata()
+    with open("output/metadata.txt", "w+") as file:
+        file.write(f"[{reappStrategy.name} Word Bank]\n")
+        file.write(pprint.pformat(metadata.wordtag_scores, indent=4) + "\n")
+        file.write(f"[{reappStrategy.name} Weights]\n")
+        file.write(pprint.pformat(metadata.weights));
+
     return correl, data_test
 
 

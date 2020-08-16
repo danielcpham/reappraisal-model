@@ -7,10 +7,9 @@ Dependencies are tracked using `pipenv` within `Pipfile. Instructions for instal
 To start up the virtual environment and install all dependencies:
 
 ```shell
-pipenv --python /usr/bin/python3
+pipenv --python [version]
 ```
-
-`python3.6+` is required.
+The version of Python installed should be at least `3.6`.
 
 ## __Running__
 

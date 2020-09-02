@@ -61,6 +61,7 @@ try:
     from nltk import wordnet
 except ModuleNotFoundError:
     nltk.download("wordnet")
+    from nltk import wordnet
 
 def main():
     # Read training data
@@ -92,9 +93,11 @@ def main():
             logger.info("Running algorithm on FAR AWAY distancing.")
             correl_spatiotemp, test_res_st = run(
                 data_train, data_test, nlp, reappStrategyFactory('spatiotemp'))
-            logger.info(
+            if not args.eval:
+                logger.info(
                 f"Correlation for Far Away distancing: {correl_spatiotemp}")
             test_res_st.to_excel(writer, sheet_name='far away', index=False)
+            logger.info("Please see output/results.xlsx for the result of this computation.")
 
 
 def run(data_train: pd.DataFrame, data_test: pd.DataFrame, nlp, reappStrategy):
@@ -109,9 +112,6 @@ def run(data_train: pd.DataFrame, data_test: pd.DataFrame, nlp, reappStrategy):
     model = Model(nlp, reappStrategy)
     model.fit(data_train[response_col], data_train[score_col])
 
-    # TODO: add metadata saving here
-    if args.saveModel:
-        print("PICKLING TBD")
 
     # Prompt user to submit column names for sentences.
     print(f"Test Data Columns: {list(data_test.columns)}")

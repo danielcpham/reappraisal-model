@@ -2,9 +2,7 @@
 
 ## __Dependencies__
 
-Dependencies are tracked using `pipenv` within `Pipfile. Instructions for installation of ```pipenv``` are located [here](https://pipenv.kennethreitz.org/en/latest/install/#installing-pipenv).
-
-To install `pipenv`, run the following commands. The first will perform a user installation of pip onto the host machine; the second will add pipenv to the `PATH` environment variable so it can be accessed by the terminal. Note that the `export` command will only apply for this user session, and you will either need to add this to your environment variable manually (recommended) or run the `export` command for each user session.
+Dependencies are tracked using `pipenv` within the `Pipfile`. To install `pipenv`, run the following commands. The first will perform a user installation of pip onto the host machine; the second will add pipenv to the `PATH` environment variable so it can be accessed by the terminal. Note that the `export` command will only apply for this user session, and you will either need to add this to your environment variable manually (recommended) or run the `export` command for each user session.
 ```bash
 > pip install --user pipenv
 > export PATH="$PATH:~/.local/bin"
@@ -50,10 +48,10 @@ At least one reappraisal strategy (either far-away or objective) must be specifi
 
 By default, the algorithm operates on two files:
 
-- `eval/data_train_fixed.csv`
-- `eval/data_test_fixed.csv`
+- `eval/data_train_example.csv`
+- `eval/data_test_example.csv`
 
-The algorithm trains the model based on the values in the first file and tests based on the values in the  second. See "Data Format" to see the formatting of the training data.
+The algorithm trains the model based on the values in the first file and tests based on the values in the second. See "Data Format" to see the formatting of the training data.
 
 In order to train the data, the user must specify which columns to use as the responses, and which is used as the score.
 

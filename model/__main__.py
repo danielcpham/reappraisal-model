@@ -56,17 +56,25 @@ logger.addHandler(ch)
 # Load english language model.
 nlp = en_core_web_sm.load()
 
+# load wordnet
+try:
+    from nltk import wordnet
+except ModuleNotFoundError:
+    nltk.download("wordnet")
 
 def main():
     # Read training data
     cwd = os.getcwd()
     # Generate dataframe for test data
     # If eval is an argument, just train the model and run it on the specified data
-    data_train = pd.read_csv('eval/data_train_fixed.csv')
+    data_train = pd.read_csv('eval/data_train_example.csv')
     if args.eval:
-        data_test = pd.read_csv(args.eval)
+        try: 
+            data_test = pd.read_csv(args.eval)
+        except:
+            data_test = pd.read_excel(args.eval)
     else:
-        data_test = pd.read_csv('eval/data_test_fixed.csv')
+        data_test = pd.read_csv('eval/data_test_example.csv')
 
     if not os.path.isdir("output"):
         os.makedirs("output")

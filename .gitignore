@@ -3,7 +3,6 @@
 **/.vs/**
 output/**
 **/__pycache__/**
-**/input/**
 **/ipynb_checkpoints/**
 
 LDH_Task_LD_LF_121219_process.ipynb

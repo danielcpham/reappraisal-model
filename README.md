@@ -4,10 +4,17 @@
 
 Dependencies are tracked using `pipenv` within `Pipfile. Instructions for installation of ```pipenv``` are located [here](https://pipenv.kennethreitz.org/en/latest/install/#installing-pipenv).
 
-To start up the virtual environment and install all dependencies:
+To install `pipenv`, run the following commands. The first will perform a user installation of pip onto the host machine; the second will add pipenv to the `PATH` environment variable so it can be accessed by the terminal. Note that the `export` command will only apply for this user session, and you will either need to add this to your environment variable manually (recommended) or run the `export` command for each user session.
+```bash
+> pip install --user pipenv
+> export PATH="$PATH:~/.local/bin"
+```
 
-```shell
-pipenv --python [version]
+To create the virtual environment and install all dependencies related to the algorithm, run the following commands within the main directory.  
+
+```bash
+> pipenv shell
+> pipenv install
 ```
 The version of Python installed should be at least `3.6`.
 

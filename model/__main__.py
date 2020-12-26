@@ -1,11 +1,43 @@
+import pandas as pd
+
 from typing import Dict, List
 # TODO: When testing, make sure we can run on different models, although DistilBERT should work fine.
-from transformers import DistilBertModel, DistilBertTokenizerFast, BatchEncoding, Trainer, TrainingArguments
+from transformers import BatchEncoding, Trainer, TrainingArguments
 from datasets import Dataset
 
+# 1. Load Training Data
+from input.data.DatasetLoader import get_dataset
+
+emobank = get_dataset('emobank')
+
+# 2. Load PreTrained models
+from model.ModelLoader import load
+model, tokenizer = load('distilbert-base-uncased')
+
+def tokenize_batch(batch: BatchEncoding, text_col_name: str):
+  return tokenizer(batch[text_col_name],
+                  add_special_tokens = True,
+                  padding = True,
+                  truncation = True)
+
+def encode(dataset: Dataset, batch_size: int, columns:List[str]) :
+  return None
+
+# 3. Finetune Model
+# TODO: generate Training Arguments
+# TODO: generate Trainer
+# TODO: should we do this in native PyTorch instead?
+
+
+
+
+"""
+Wrapper class for pretrained transformer models.
+"""
 class TransformerModel:
   def __init__(self, model_name, datasets:List[Dataset]):
     try:
+      self.name = model_name
       self.model = DistilBertModel.from_pretrained(model_name)
       self.tokenizer = DistilBertTokenizerFast.from_pretrained(model_name)
     except:
@@ -19,8 +51,8 @@ class TransformerModel:
       padding=True,                       # Pad to the longest sequence in the batch.
       truncation=True)
 
-  def encode(self, dataset, batch_size: int, columns:List[str]) -> BatchEncoding :
-    encoded_dataset = dataset.map(self, self.tokenize(batch_size), batch_size=batch_size)
+  def encode(self, dataset: pd.DataFrame, batch_size: int, columns:List[str]) -> BatchEncoding :
+    encoded_dataset = dataset.map(self.tokenize(batch_size), batch_size=batch_size)
     # TODO: check to see if there's somewhere else I can do this (probably the tokenizer??)
     # TODO: Make sure the column labels are correct for the task we're doing
     encoded_dataset.set_format('torch', columns=columns) 
@@ -65,3 +97,11 @@ def train(trainer:Trainer):
 
 def eval():
   return None
+
+# Features to extract
+
+# We can use VAD to generate emotion scores for sentiment analysis
+# - Valence
+# - Arousal
+# - Dominance 
+# We can use 

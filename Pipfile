@@ -19,6 +19,7 @@ nltk = "*"
 datasets = "*"
 transformers = "*"
 sklearn = "*"
+torch = "*"
 
 [requires]
 ##TODO: Switch to Poetry for python management 

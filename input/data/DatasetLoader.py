@@ -9,7 +9,6 @@ from datasets import load_dataset, DatasetDict, Dataset
 
 Data = Union[Dataset, DatasetDict]
 
-
 class InvalidModelNameException(Exception):
   """When an model name is passed for a model that doesn't exist."""
   pass 

@@ -18,16 +18,15 @@ Single entry point to pick up datasets.
 """
 def get_dataset(dataset_name: str) -> Data:
   # TODO: match dataset on name
-  datasets = {
-    'emobank' : load_emobank(),
-    'ldh' : load_dataset('input/data/LDHDataset.py')
-  }
 
-  if dataset_name not in datasets:
+  if dataset_name == 'emobank':
+    return load_emobank()
+  elif dataset_name == 'ldh':
+    return load_dataset('./input/LDHDataset.py')
+  else:
     raise InvalidModelNameException
 
-  return datasets[dataset_name]
 
 def load_emobank() -> Data:
-  return load_dataset("csv", datafiles='./input/emobank.csv')
+  return load_dataset("csv", data_files=['./input/emobank.csv'])
 

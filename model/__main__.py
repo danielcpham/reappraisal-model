@@ -1,37 +1,37 @@
-import pandas as pd
 
 from typing import Dict, List
+
 # TODO: When testing, make sure we can run on different models, although DistilBERT should work fine.
+import pandas as pd
 from transformers import BatchEncoding, Trainer, TrainingArguments
 from datasets import Dataset
 
-from .ModelLoader import load
-from input.data.DatasetLoader import get_dataset
-
+from data.DatasetLoader import get_dataset
+from ModelLoader import load
 
 # 1. Load Training Data
 ldh = get_dataset('ldh')
 emobank = get_dataset('emobank')
 
-# 2. Load PreTrained models
-from model.ModelLoader import load
+# # 2. Load PreTrained models
 model, tokenizer = load('distilbert-base-uncased')
 
-def tokenize_batch(batch: BatchEncoding, text_col_name: str):
-  return tokenizer(batch[text_col_name],
-                  add_special_tokens = True,
-                  padding = True,
-                  truncation = True)
 
-def encode(dataset: Dataset, batch_size: int, columns:List[str]):
-  return None
+def encode(dataset: Dataset, tokenizer, text_col_name:str, batch_size=1000):
+  return dataset.map(lambda data: tokenizer(data[text_col_name],
+      add_special_tokens=True,
+      padding=True,
+      truncation=True
+    ), 
+    batched=True, 
+    batch_size=batch_size)
 
-# 3. Finetune Model
-# TODO: generate Training Arguments
-# TODO: generate Trainer
-# TODO: should we do this in native PyTorch instead?
-
-
+# # 3. Finetune Model
+# # TODO: generate Training Arguments
+# # TODO: generate Trainer
+# # TODO: should we do this in native PyTorch instead?
+print(ldh)
+encode(ldh, tokenizer, "text")
 
 
 """

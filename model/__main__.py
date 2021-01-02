@@ -1,37 +1,52 @@
-
-from typing import Dict, List
+from typing import List
 
 # TODO: When testing, make sure we can run on different models, although DistilBERT should work fine.
 import pandas as pd
-from transformers import BatchEncoding, Trainer, TrainingArguments
-from datasets import Dataset
+import torch
+from transformers import Trainer, BertForSequenceClassification, AdamW, BertTokenizer, BatchEncoding
+from datasets import Dataset, load_dataset
 
 from data.DatasetLoader import get_dataset
-from ModelLoader import load
 
 # 1. Load Training Data
-ldh = get_dataset('ldh')
-emobank = get_dataset('emobank')
-
-# # 2. Load PreTrained models
-model, tokenizer = load('distilbert-base-uncased')
+# ldh = get_dataset('ldh')
+# emobank = get_dataset('emobank')
+reviews = load_dataset("amazon_reviews_multi", 'en')
 
 
-def encode(dataset: Dataset, tokenizer, text_col_name:str, batch_size=1000):
-  return dataset.map(lambda data: tokenizer(data[text_col_name],
-      add_special_tokens=True,
-      padding=True,
-      truncation=True
-    ), 
-    batched=True, 
-    batch_size=batch_size)
+# 2. Load PreTrained model and place into train mode for fine-tuning
+# model = BertForSequenceClassification.from_pretrained('bert-base-uncased')
+# model.train()
 
+
+from transformers import AutoTokenizer
+tokenizer = AutoTokenizer.from_pretrained('distilbert-base-uncased', use_fast=True)
+
+# no_decay = ['bias', 'LayerNorm.weight']
+# optimizer_grouped_parameters = [
+#     {'params': [p for n, p in model.named_parameters() if not any(nd in n for nd in no_decay)], 'weight_decay': 0.01},
+#     {'params': [p for n, p in model.named_parameters() if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
+# ]
+# optimizer = AdamW(optimizer_grouped_parameters, lr=1e-5)
+print(reviews)
+# 3. Encode Inputs
+def tokenize(dataset: Dataset):
+  return tokenizer(dataset['review_body'],
+    add_special_tokens=True,            # Add CLS and SEP tokens. 
+    padding=True,                       # Pad to the longest sequence in the batch.
+    truncation=True)
+
+def encode(dataset: Dataset, batch_size: int, columns:List[str]) -> BatchEncoding :
+  encoded_dataset = dataset.map(lambda batch: tokenize(batch), batch_size=batch_size)
+  # TODO: check to see if there's somewhere else I can do this (probably the tokenizer??)
+  # TODO: Make sure the column labels are correct for the task we're doing
+  encoded_dataset.set_format('torch', columns=columns) 
+  return encoded_dataset
+
+# encode(reviews['train']['review_body'], 64, None)
 # # 3. Finetune Model
-# # TODO: generate Training Arguments
-# # TODO: generate Trainer
-# # TODO: should we do this in native PyTorch instead?
-print(ldh)
-encode(ldh, tokenizer, "text")
+# Use different factory methods to gebnerate new training arguments and trainers to be run
+
 
 
 """

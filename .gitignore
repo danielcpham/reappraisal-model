@@ -10,7 +10,6 @@ input/Text Excerpts.zip
 input/deprecate
 input/test
 input/training
-**.ipynb
 .DS_Store
 
 

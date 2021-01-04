@@ -3,15 +3,13 @@ import os
 
 import pandas as pd
 
-#TODO: Use GitLFS to get the files?
-
-
 class LDHConfig(datasets.BuilderConfig):
   """Builder Config for LDH Data"""
   def __init__(self, **kwargs):
     super(LDHConfig, self).__init__(**kwargs)
 
 class LDHDataset(datasets.GeneratorBasedBuilder):
+  # TODO: create configs for testing and training data
   BUILDER_CONFIGS = [
     LDHConfig(
       name="ldh"

@@ -22,3 +22,6 @@ processed_LDH_121219.csv
 test_set.csv
 test_notes_0304.txt
 Pipfile.lock
+
+testing.env
+development.env

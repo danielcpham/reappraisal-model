@@ -3,6 +3,8 @@ from transformers import Model
 
 
 # Generic test sentiment classifier
+# TODO: Extend to an objective trainer somehow
+
 class SentimentClassifier(nn.Module):
     def __init__(self, n_classes: int, model_class: Model, model_name: str):
         """Generates a sentiment classifier model from a pretrained huggingface model.
@@ -13,11 +15,11 @@ class SentimentClassifier(nn.Module):
             model_name (str): [description]
         """
         super(SentimentClassifier, self).__init__()
-
         self.bert = model_class.from_pretrained(model_name)
-        self.drop = nn.Dropout(p=0.3)
-        # Linear feedforward networks
+        self.drop = nn.Dropout(p=0.3) # Dropout: randomly zero some of the elements with probability p
+        # Simple feedforward network from the last hidden state to the output (the classification labels)
         self.out = nn.Linear(self.bert.config.hidden_size, n_classes)
+        # Multiclass logistic regression
         self.softmax = nn.Softmax(dim=1)
 
     def forward(self, input_ids, attention_mask):

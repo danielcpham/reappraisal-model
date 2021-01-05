@@ -7,7 +7,6 @@ from transformers import BatchEncoding, Tokenizer, Model
 
 # Utility functions for creating dataset loaders.
 # DatasetLoaders are iterators that return each point in the dataset.
-
 # https://github.com/huggingface/datasets/blob/master/templates/new_dataset_script.py
 
 def encode(dataset:Dataset, tokenizer: Tokenizer) -> BatchEncoding:
@@ -23,8 +22,6 @@ def encode(dataset:Dataset, tokenizer: Tokenizer) -> BatchEncoding:
   return encoded_dataset
 
 
-def create_dataset(df: pd.DataFrame) -> Dataset:
-  pass
 
 def create_datasetloader(dataset: Dataset, batch_size: int) -> DatasetLoader:
   if not issubclass(dataset, BatchEncoding):

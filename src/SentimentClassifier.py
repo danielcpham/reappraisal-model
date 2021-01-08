@@ -1,12 +1,12 @@
 from torch import nn
-from transformers import Model
+from transformers import PreTrainedModel, DistilBertModel
 
 
 # Generic test sentiment classifier
 # TODO: Extend to an objective trainer somehow
 
 class SentimentClassifier(nn.Module):
-    def __init__(self, n_classes: int, model_class: Model, model_name: str):
+    def __init__(self, n_classes: int, model_class: DistilBertModel, model_name: str):
         """Generates a sentiment classifier model from a pretrained huggingface model.
 
         Args:

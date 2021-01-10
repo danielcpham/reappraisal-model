@@ -9,6 +9,8 @@ jupyter = "*"
 debugpy = "*"
 pytest = "*"
 autopep8 = "*"
+pyre-check = "*"
+pytype = "*"
 
 [packages]
 numpy = "*"

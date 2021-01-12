@@ -1,33 +1,23 @@
 from typing import Union
 
 import pandas as pd
-from datasets import Dataset, DatasetLoader, DatasetDict, load_dataset
-from transformers import BatchEncoding, Tokenizer, Model
-
-
+from datasets import Dataset, DatasetDict, load_dataset
+from transformers import BatchEncoding, PreTrainedTokenizer
 # Utility functions for creating dataset loaders.
 # DatasetLoaders are iterators that return each point in the dataset.
 # https://github.com/huggingface/datasets/blob/master/templates/new_dataset_script.py
 
-def encode(dataset:Dataset, tokenizer: Tokenizer) -> BatchEncoding:
+def encode_data(tokenizer: PreTrainedTokenizer, dataset:Dataset, text_col_name: str) -> BatchEncoding:
   # check that the dataset is not already encoded
   # if already encoded, just return it
   encoded_dataset = dataset.map(
-    lambda batch: tokenizer(batch['text'],
+    lambda batch: tokenizer(batch[text_col_name],
       add_special_tokens = True,
       padding=True,
       truncation = True), batched=True)
-
   encoded_dataset.set_format(type='torch', output_all_columns=True)
   return encoded_dataset
 
-
-
-def create_datasetloader(dataset: Dataset, batch_size: int) -> DatasetLoader:
-  if not issubclass(dataset, BatchEncoding):
-    #TODO: verify check that the dataset in question is encoded
-    return
-  pass
 
 
 Data = Union[Dataset, DatasetDict]

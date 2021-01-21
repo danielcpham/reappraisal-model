@@ -23,5 +23,7 @@ test_set.csv
 test_notes_0304.txt
 Pipfile.lock
 
-testing.env
+# Environment Files
+.env
 development.env
+kite_tutorial.ipynb

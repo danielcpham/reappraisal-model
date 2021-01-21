@@ -4,12 +4,12 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [dev-packages]
-ipykernel = "*"
-jupyter = "*"
 debugpy = "*"
 pytest = "*"
 autopep8 = "*"
 jupyterlab = "*"
+jupyterlab-kite = ">=2.0.2"
+jedi = "<0.18.0"
 
 [packages]
 numpy = "*"
@@ -22,7 +22,9 @@ datasets = "*"
 transformers = "*"
 sklearn = "*"
 torch = "*"
-jupyterlab-kite = ">=2.0.2"
+matplotlib = "*"
+ipykernel = "*"
+jupyter = "*"
 
 [requires]
 python_version = "3.8"

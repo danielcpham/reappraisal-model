@@ -56,54 +56,49 @@ else:
 PRETRAINED_MODEL_NAME = 'distilbert-base-cased'
 
 
+from LDHData import LDHData
 
-from sklearn.model_selection import train_test_split
+data = LDHData()
+ldh_train = data.train_data
+ldh_eval = data.eval_data
 
-# Read LDH Data into a Pandas DataFrame.
-files = os.listdir("../eval")
-dfs = []
-for file in files:
-    if file.endswith(".csv"):
-        dfs.append(pd.read_csv(os.path.join("../eval", file), header=None, names=['response', "spatiotemp", "obj"]))
-ldh = pd.concat(dfs, ignore_index=True)
+ldh_train, ldh_eval
 
 
 from collections import Counter, defaultdict
 from nltk.tokenize import sent_tokenize, word_tokenize
 
 # Word tokenizer and sentence tokenizer with NLTK
-resp_lengths = Counter() # Counts
-length_scores_spatiotemp = defaultdict(list)
-length_scores_obj = defaultdict(list)
+resp_lengths = []
+length_scores_spatiotemp = []
+length_scores_obj = []
 for row in ldh.itertuples():
     if row.Index == 0:
         continue
     response = row.response
-    score_spat = row.spatiotemp
-    score_obj = row.obj
+    try:
+        score_spat = float(row.spatiotemp)
+    except:
+        continue
+    try:
+        score_obj = float(row.obj)
+    except:
+        continue
     len_response = len(word_tokenize(response))
-    resp_lengths[len_sentence] += 1
-    length_scores_spatiotemp[len_sentence].append(score_spat)
-    length_scores_obj[len_sentence].append(score_obj)
-#     len_sentence = len(word_tokenize(sentence))
-#     resp_lengths[len_sentence] += 1
-print(resp_lengths)
-print(length_scores_spatiotemp)
-print(length_scores_obj)
-
-        
+    resp_lengths.append(len_response)
+    length_scores_spatiotemp.append((len_response, score_spat))
+    length_scores_obj.append((len_response, score_obj))
 
 
-# Split LDH Data into a training dataset and a evaluation dataset.
-train_ldh, eval_ldh = train_test_split(ldh, test_size=0.15) # shuffle
+# Split LDH Data into a training dataset and a validation dataset.
+train_ldh, val_ldh = train_test_split(ldh, test_size=0.15) # shuffle
 train_ldh_ds = Dataset.from_pandas(train_ldh)
-eval_ldh_ds = Dataset.from_pandas(eval_ldh)
+val_ldh_ds = Dataset.from_pandas(val_ldh)
 # TODO: Convert to DatasetDict
 
 
 from datasets import Dataset, load_dataset
 # For testing on a CPU, just grab the first few.
-
 if IS_GPU:
     splits = [ReadInstruction('train'), ReadInstruction('test')]
 else:
@@ -115,12 +110,8 @@ train_ds, eval_ds = load_dataset('imdb', split=splits)
 train_val_ds = train_ds.train_test_split(test_size=0.15)
 
 
-
-
-
 from torch import nn, optim
-from torch.utils.data import DataLoader
-from transformers import DistilBertForSequenceClassification, DistilBertTokenizer, AdamW, get_linear_schedule_with_warmup
+from transformers import DistilBertForSequenceClassification, DistilBertTokenizer
 
 # Tokenize the datasets.
 tokenizer = DistilBertTokenizer.from_pretrained(PRETRAINED_MODEL_NAME)
@@ -137,26 +128,13 @@ encoded_ds.set_format(type='torch')
 encoded_ds.column_names, encoded_ds.shape
 
 
-from transformers import DistilBertForSequenceClassification
-
-# Define model.
-class TestModel(nn.Module):
-    def __init__(self):
-        """Initializes the NN wrapper for LDH classification.
-        """
-        super(TestModel, self).__init__()
-        self.inner_model = DistilBertForSequenceClassification.from_pretrained(PRETRAINED_MODEL_NAME)
-
-    def forward(self, input_ids, attention_mask, **kwargs):
-        """Called to run a single pass through the training data.
-        """
-        # Pass the inputs directly into the inner model
-        # TODO: Do stuff after we get the forward models
-        return self.inner_model.forward(input_ids=input_ids, attention_mask=attention_mask, **kwargs)
-
-
-
 from transformers import TrainingArguments, Trainer, DistilBertModel
+
+from ReappModel import ReappModel
+
+# Create the training model.
+# TODO: Suppress initialization errors.
+model = ReappModel(PRETRAINED_MODEL_NAME)
 
 num_train_epochs = 3 if IS_GPU else 1
 
@@ -174,10 +152,6 @@ training_args = TrainingArguments(
 
 encoded_train = encoded_ds['train']
 encoded_test  = encoded_ds['test']
-
-# Create the training model.
-# TODO: Suppress initialization errors.
-model = TestModel()
 
 # HyperParameter search depending on the model.
 

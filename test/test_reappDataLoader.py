@@ -6,7 +6,15 @@ import datasets
 
 sys.path.insert(0, os.getcwd())
 from src.reappDataLoader import encode_data
+from src.LDHData import LDHData
 from transformers import DistilBertTokenizerFast
+
+
+def test_train_data():
+    os.chdir(os.path.join(os.getcwd(), "src"))
+    print(os.getcwd())
+    ldh_train = LDHData().train_data
+    assert ldh_train.keys() == {"spatiotemp", "obj"}
 
 
 

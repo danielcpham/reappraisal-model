@@ -1,12 +1,13 @@
 import os
+from typing import Dict
 
 import numpy as np
 import pandas as pd
-from datasets import Dataset, DatasetDict
+from datasets import Dataset, Features
 
 class LDHData:
     def __init__(self):
-        # Grab training dataset and save it to training_data
+        # Read training data into a single dataframe
         datadir_train = os.path.join(os.getcwd(),"../input/training")
         files = os.listdir(datadir_train)
         dfs = []
@@ -15,27 +16,47 @@ class LDHData:
                 filename = os.path.join(datadir_train, file)
                 dfs.append(pd.read_csv(
                     filename, 
-                    header=None, 
+                    header = 0,
                     names=['response', "spatiotemp", "obj"]
                 ))
         ldh = pd.concat(dfs, ignore_index=True)
-        self.train_data = DatasetDict({
-            "spatiotemp" : Dataset.from_pandas(ldh[['response', 'spatiotemp']].rename(columns={"spatiotemp": "score"})),
-            "obj" : Dataset.from_pandas(ldh[['response', 'obj']].rename(columns={"spatiotemp": "score"}))
-        })
 
-        # Grab testing dataset and set it to eval_data, split by 
-        columns = ["addcode", "Subj_ID", "Condition", "TextResponse"]
+        self.ldh_df = ldh
+        # Split training dataframe into faraway and obj datasets
+        # TODO: rename columns using Dataset features
+        ldh_train_far =  Dataset.from_pandas(ldh[['response', 'spatiotemp']])
+        ldh_train_obj = Dataset.from_pandas(ldh[['response', 'obj']])
 
+        ldh_train_far.rename_column_('spatiotemp', 'score')
+        ldh_train_obj.rename_column_('obj', 'score')
+
+        # Read evaluation data and save as dataframes
         datadir_eval = os.path.join(os.getcwd(), "../eval")
-        ldhii_far = pd.read_excel(os.path.join(datadir_eval, "Alg_Far_NEW.xlsx" ), usecols=columns)
-        ldhii_obj = pd.read_excel(os.path.join(datadir_eval, "Alg_Obj_NEW.xlsx" ), usecols=columns)
+        columns = ["addcode", "Subj_ID", "Condition", "TextResponse"]
+        ldh_eval_far = pd.read_excel(os.path.join(datadir_eval, "Alg_Far_NEW.xlsx" ), usecols=columns)
+        ldh_eval_obj = pd.read_excel(os.path.join(datadir_eval, "Alg_Obj_NEW.xlsx" ), usecols=columns)
 
-        ldhii_far.columns = ["addcode", "subjID", "condition", "response"]
-        ldhii_obj.columns = ["addcode", "subjID", "condition", "response"]
-
-        self.eval_data = {
-            "spatiotemp": Dataset.from_pandas(ldhii_far),
-            "obj": Dataset.from_pandas(ldhii_obj)
+        # Convert datasets into far and obj datasets with training and testing data splits
+        self.ldh_far_ds = {
+            'train': ldh_train_far,
+            'eval': ldh_eval_far
+        }
+        
+        self.ldh_obj_ds = {
+            'train': ldh_train_obj,
+            'eval': ldh_eval_obj
         }
 
+    def get_spatiotemp_data(self) -> Dict[str, Dataset]:
+        """Retrieves the spatiotemporal distancing dataset.
+        """
+        return self.ldh_far_ds
+        
+    def get_obj_data(self) -> Dict[str, Dataset]:
+        """Retrieves the objective distancing dataset.
+        """
+        return self.ldh_obj_ds
+
+
+
+    

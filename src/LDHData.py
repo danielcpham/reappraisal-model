@@ -8,7 +8,7 @@ from datasets import Dataset, Features
 class LDHData:
     def __init__(self):
         # Read training data into a single dataframe
-        datadir_train = os.path.join(os.getcwd(),"../input/training")
+        datadir_train = os.path.join(os.getcwd(),"./src/training")
         files = os.listdir(datadir_train)
         dfs = []
         for file in files:
@@ -31,10 +31,10 @@ class LDHData:
         ldh_train_obj.rename_column_('obj', 'score')
 
         # Read evaluation data and save as dataframes
-        datadir_eval = os.path.join(os.getcwd(), "../eval")
+        datadir_eval = os.path.join(os.getcwd(), "./src/eval")
         columns = ["addcode", "Subj_ID", "Condition", "TextResponse"]
-        ldh_eval_far = pd.read_excel(os.path.join(datadir_eval, "Alg_Far_NEW.xlsx" ), usecols=columns)
-        ldh_eval_obj = pd.read_excel(os.path.join(datadir_eval, "Alg_Obj_NEW.xlsx" ), usecols=columns)
+        ldh_eval_far = pd.read_excel(os.path.join(datadir_eval, "Alg_Far_NEW.xlsx" ), usecols=columns, engine="openpyxl")
+        ldh_eval_obj = pd.read_excel(os.path.join(datadir_eval, "Alg_Obj_NEW.xlsx" ), usecols=columns, engine="openpyxl")
 
         # Convert datasets into far and obj datasets with training and testing data splits
         self.ldh_far_ds = {

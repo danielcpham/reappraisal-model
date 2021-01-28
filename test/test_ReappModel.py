@@ -12,7 +12,9 @@ from src.ReappModel import ReappModel
 
 @pytest.fixture
 def tokenizer():
-    return DistilBertTokenizer.from_pretrained("distilbert-base-cased")
+    tok = DistilBertTokenizer.from_pretrained("distilbert-base-cased")
+    tok.model_input_names.append("score")
+
 
 @pytest.fixture
 def train_example():
@@ -21,8 +23,8 @@ def train_example():
     # Tokenize the thing
     # return the tokenized dataset
     example = Dataset.from_dict({
-        "response": ["This might be the coolest thing in the world!", "No, you're a dum-dum."],
-        "score": [6.0, 1.0]
+        "response": ["This might be the coolest thing in the world!"] * 16,
+        "score": [6.0] * 16
     })
     return example
 
@@ -38,7 +40,6 @@ def test_train_example(train_example, tokenizer):
     print(encoded)
 
     model = ReappModel()
-
     outputs = model(input_ids=encoded['input_ids'], attention_mask=encoded['attention_mask'], scores=encoded['score'])
     print(outputs)
     

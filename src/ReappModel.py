@@ -21,7 +21,7 @@ class ReappModel(nn.Module):
         out = self.out(outputs.last_hidden_state)
         loss = self.loss(out, scores[0])
         #TODO: we simply sum up the elements here, let's do something smarter?
-        return loss, outputs
+        return loss, out
 
 
 

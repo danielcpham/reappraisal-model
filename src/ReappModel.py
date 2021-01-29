@@ -19,7 +19,6 @@ class ReappModel(nn.Module):
             attention_mask=attention_mask,
             **bert_kwargs)
         out = self.out(outputs.last_hidden_state)
-        print(out.sum((1,2)).shape, score[0].shape)
         loss = self.loss(out.sum((1,2)).float(), score[0].float())
         # Add regression classes for 
         #TODO: we simply sum up the elements here, let's do something smarter?

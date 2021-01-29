@@ -9,6 +9,7 @@ import pandas as pd
 from datasets import Dataset, DatasetDict
 from nltk.tokenize import sent_tokenize
 from pandas import DataFrame
+from transformers import PreTrainedTokenizer
 
 
 class LDHData:
@@ -27,7 +28,7 @@ class LDHData:
     @property
     def datasets(self, *args):
         return to_datasets(self.dataframes)
-        
+    
     def load_training_data(self) -> None:
         if os.path.exists("./src/training/far.pkl") and os.path.exists("./src/training/obj.pkl"):
             self.dataframes['train'] = {
@@ -54,31 +55,20 @@ class LDHData:
         .apply(pd.Series).unstack().reset_index()\
         .drop('level_1', axis=1)        
         collapsed = df.merge(new_responses, right_on='level_0', left_on=df.index, how="right")
-        collapsed = collapsed.drop(['Condition', 'response', '__index_level_0__'], axis=1).rename(columns={0: 'response'}).dropna(subset=["addcode", 'response'])
+        collapsed = collapsed.drop(['Condition', 'response'], axis=1).rename(columns={0: 'response'}).dropna(subset=["addcode", 'response'])
         collapsed = collapsed[collapsed['response'] != "."]
         return collapsed
-
-    def encode_training_data(self, data: DataFrame):
-        dataset = Dataset.from_pandas(data)
-        encoded_ds = dataset.map(
-            lambda batch: self.tokenizer(
+    
+    def encode_datasets(self, tokenizer, **tokenizer_args) -> Dict:
+        ds = self.datasets
+        for key, value in ds.items():
+            ds[key] = value.map(lambda batch: tokenizer(
                 batch['response'],
                 add_special_tokens=True,
                 padding="max_length",
-                truncation=True))
-        encoded_ds.set_format(type='torch', output_all_columns=True)
-        return encoded_ds
-
-    def encode_eval_data(self, data: DataFrame):
-        dataset = Dataset.from_pandas(data)
-        encoded_ds = dataset.map(
-            lambda batch: self.tokenizer(
-                batch['response'],
-                add_special_tokens=True,
-                padding="max_length",
-                truncation=True))
-        encoded_ds.set_format(type='torch', output_all_columns=True)
-        return encoded_ds
+                truncation=True), **tokenizer_args)
+            ds[key].set_format(type="torch", output_all_columns=True)
+        return ds
 
     # Functions to read the data files directly
     def _parse_training_data(self) -> None:
@@ -123,22 +113,20 @@ class LDHData:
         self.dataframes['train']['obj'].to_pickle("./src/training/obj.pkl")
         self.dataframes['eval']['far'].to_pickle("./src/eval/far.pkl")
         self.dataframes['eval']['obj'].to_pickle("./src/eval/obj.pkl")
-
-
-    
-    
+        
 def _expand_response(input_response: str) -> List[str]:
     sentences = sent_tokenize(input_response)
     return sentences
 
-def to_datasets(dfs):
+def to_datasets(dfs) -> Dict[str, DatasetDict]:
     return {
-        'train': {
+        'train': DatasetDict({
             'far': Dataset.from_pandas(dfs['train']['far']),
             'obj': Dataset.from_pandas(dfs['train']['obj'])
-        }, 
-        'eval': {
+        }), 
+        'eval': DatasetDict({
             'far': Dataset.from_pandas(dfs['eval']['far']),
             'obj': Dataset.from_pandas(dfs['eval']['obj'])
-        }
+        })
     }
+

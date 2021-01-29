@@ -17,9 +17,7 @@ def ldhdata() -> LDHData:
     
 
 def test_encode_eval_data(ldhdata: LDHData):
-    far : pd.DataFrame = ldhdata.get_eval_far_data(encoded=False)
-    # obj = ldhdata.eval_obj_data   
-    
+    pass
     # ldhdata.encode_eval_data(far)
 
 

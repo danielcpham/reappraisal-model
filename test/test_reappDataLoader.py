@@ -1,63 +1,33 @@
 import sys
 import os
 import pytest
-from typing import Dict
+from typing import Dict, List
 
 import numpy as np
 import pandas as pd
+from transformers import DistilBertTokenizer
 from datasets import DatasetDict, Dataset
 
 sys.path.insert(0, os.getcwd())
-from src.reappDataLoader import encode_data
 from src.LDHData import LDHData
 
 @pytest.fixture
-def use_src_directory():
-    os.chdir(os.path.join(os.getcwd(), "src"))
-
-@pytest.fixture
-def ldhdata(use_src_directory):
-    return LDHData()
+def ldhdata():
+    return LDHData(tokenizer=DistilBertTokenizer.from_pretrained('distilbert-base-cased'))
 
 
-def test_dataframe(ldhdata):
-    df = ldhdata.ldh_df
-    print(df)
-
-def test_objective_data(ldhdata):
-    obj_data = ldhdata.get_obj_data()
-    assert obj_data is not None
-
-
-
-
-# class TestDataClass: #TODO: rename for better description and grouping of tests 
-#     """Tests methods involved with creating and preprocessing training data.
-#     """
-#     def test_DatasetNotEncoded(self):
-#         # Passes if fails early when trying to pass a non-encoded dataset into create_datasetloader
-#         assert True
-
-#     def test_encode_dataset(self):
-#         tokenizer = DistilBertTokenizerFast.from_pretrained('distilbert-base-cased')
-#         sentences = ["Hello, I'm The Doctor.", "Doctor Who?"]
-#         print(tokenizer(sentences))
-#         encoded_sentences = tokenizer(sentences)
-#         assert encoded_sentences.keys() is not None
-        
-
-#     def test_LDH(self, ldh_dataset):
-#         """Tests shape of ldh_dataset
-#         """
-#         # Test shape
-#         assert ldh_dataset is not None
-#         for split in ldh_dataset.keys():
-#             assert len(ldh_dataset[split]) > 0
-
-#     def test_EncodedDatasetsHaveSpecialTokens(self):
-#         # Check that CLS and SEP tokens are present in the encoded dataset
-#         assert True
-
-
-# # Tests on the actual data
-# # TODO: Find metrics on "good data"
+def test_encode_eval_data(ldhdata):
+    far = ldhdata.eval_far_data
+    # obj = ldhdata.eval_obj_data
+    from nltk.tokenize import sent_tokenize
+    def expand_response(str):
+        sentences = sent_tokenize(str)
+        return sentences
+    new_responses = far['response'].map(lambda resp: expand_response(resp)) \
+        .apply(pd.Series)\
+        .unstack()\
+        .reset_index()\
+        .drop('level_1', axis=1)\
+        .dropna()
+    print(new_responses)
+    # ldhdata.encode_eval_data(far)

@@ -14,10 +14,13 @@ pandas = "^1.2.1"
 jupyter = "^1.0.0"
 jupyterlab = "^3.0.6"
 openpyxl = "^3.0.6"
+nltk = "^3.5"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.2"
 pylint = "^2.6.0"
+pylama = "^7.7.1"
+pytest-mock = "^3.5.1"
 
 
 [build-system]

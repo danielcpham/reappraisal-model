@@ -1,5 +1,6 @@
 import os
 import pickle as pkl
+
 from collections import defaultdict
 from typing import Dict, List, Tuple, Union
 
@@ -31,21 +32,29 @@ class LDHData:
     
     def load_training_data(self) -> None:
         if os.path.exists("./src/training/far.pkl") and os.path.exists("./src/training/obj.pkl"):
-            self.dataframes['train'] = {
-                'far': pd.read_pickle("./src/training/far.pkl"),
-                'obj': pd.read_pickle("./src/training/obj.pkl")
-            } 
-            self.pickle_data()
-        self._parse_training_data()
+            try: 
+                self.dataframes['train'] = {
+                    'far': pd.read_pickle("./src/training/far.pkl"),
+                    'obj': pd.read_pickle("./src/training/obj.pkl")
+                }
+                self.pickle_data()
+            except: 
+                pass
+        else:
+            self._parse_training_data()
 
     def load_eval_data(self) -> None:
         if os.path.exists("./src/eval/far.pkl") and os.path.exists("./src/eval/obj.pkl"):
-            self.dataframes['eval'] = {
-                'far': pd.read_pickle("./src/eval/far.pkl"),
-                'obj': pd.read_pickle("./src/eval/obj.pkl")
-            } 
-            self.pickle_data()
-        self._parse_eval_data()
+            try:
+                self.dataframes['eval'] = {
+                    'far': pd.read_pickle("./src/eval/far.pkl"),
+                    'obj': pd.read_pickle("./src/eval/obj.pkl")
+                } 
+                self.pickle_data()
+            except: 
+                pass
+        else:
+            self._parse_eval_data()
 
     def collapse_eval_data(self, df: DataFrame):
         """Let df be the dataframe obtained from loading evaluation data. 
@@ -109,11 +118,13 @@ class LDHData:
 
     # Functions to read and save compressed data files
     def pickle_data(self) -> None:
-        self.dataframes['train']['far'].to_pickle("./src/training/far.pkl")
-        self.dataframes['train']['obj'].to_pickle("./src/training/obj.pkl")
-        self.dataframes['eval']['far'].to_pickle("./src/eval/far.pkl")
-        self.dataframes['eval']['obj'].to_pickle("./src/eval/obj.pkl")
-        
+        try: # downgrade to protocol 4 for python 3.6 compatibility
+            self.dataframes['train']['far'].to_pickle("./src/training/far.pkl", protocol=4)
+            self.dataframes['train']['obj'].to_pickle("./src/training/obj.pkl", protocol=4)
+            self.dataframes['eval']['far'].to_pickle("./src/eval/far.pkl", protocol=4)
+            self.dataframes['eval']['obj'].to_pickle("./src/eval/obj.pkl", protocol=4)
+        except:
+            pass 
 def _expand_response(input_response: str) -> List[str]:
     sentences = sent_tokenize(input_response)
     return sentences

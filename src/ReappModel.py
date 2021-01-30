@@ -22,7 +22,7 @@ class ReappModel(nn.Module):
         loss = self.loss(out.sum((1,2)).float(), score[0].float())
         # Add regression classes for 
         #TODO: we simply sum up the elements here, let's do something smarter?
-        return loss, out
+        return loss, *out
 
 
 

@@ -1,9 +1,7 @@
 import os
-import pickle as pkl
-
 from collections import defaultdict
+from pathlib import Path
 from typing import Dict, List, Tuple, Union
-
 
 import numpy as np
 import pandas as pd
@@ -12,49 +10,29 @@ from nltk.tokenize import sent_tokenize
 from pandas import DataFrame
 from transformers import PreTrainedTokenizer
 
+from .LDHConfig import LDHConfig
 
 class LDHData:
-    def __init__(self, tokenizer=None):
-        # TODO: convert to multi index
+    def __init__(self, tokenizer=None, config: LDHConfig = None):
+        if not config:
+            config = LDHConfig.make()
+        self.training_dir = config.training_dir
+        self.eval_dir = config.eval_dir
         self.dataframes = {
             'train': defaultdict(pd.DataFrame),
             'eval': defaultdict(pd.DataFrame)}
-        # TODO: if exists pickles, grab them
         self.load_training_data()
         self.load_eval_data()
-        # otherwise, load training_data and pickle 
-        ## Save to disk if we don't already have a version
-    # Functions to load data; parses if not available
 
     @property
     def datasets(self, *args):
         return to_datasets(self.dataframes)
     
     def load_training_data(self) -> None:
-        if os.path.exists("./src/training/far.pkl") and os.path.exists("./src/training/obj.pkl"):
-            try: 
-                self.dataframes['train'] = {
-                    'far': pd.read_pickle("./src/training/far.pkl"),
-                    'obj': pd.read_pickle("./src/training/obj.pkl")
-                }
-                self.pickle_data()
-            except: 
-                pass
-        else:
-            self._parse_training_data()
+        self._parse_training_data()
 
     def load_eval_data(self) -> None:
-        if os.path.exists("./src/eval/far.pkl") and os.path.exists("./src/eval/obj.pkl"):
-            try:
-                self.dataframes['eval'] = {
-                    'far': pd.read_pickle("./src/eval/far.pkl"),
-                    'obj': pd.read_pickle("./src/eval/obj.pkl")
-                } 
-                self.pickle_data()
-            except: 
-                pass
-        else:
-            self._parse_eval_data()
+        self._parse_eval_data()
 
     def collapse_eval_data(self, df: DataFrame):
         """Let df be the dataframe obtained from loading evaluation data. 
@@ -81,12 +59,11 @@ class LDHData:
 
     # Functions to read the data files directly
     def _parse_training_data(self) -> None:
-        datadir_train = os.path.join(os.getcwd(),"./src/training")
-        files = os.listdir(datadir_train)
+        files = os.listdir(self.training_dir)
         dfs: List[DataFrame] = []
         for file in files:
             if file.endswith(".csv"):
-                filename = os.path.join(datadir_train, file)
+                filename = os.path.join(self.training_dir, file)
                 dfs.append(pd.read_csv(
                     filename, 
                     header = 0,
@@ -101,13 +78,11 @@ class LDHData:
             }
 
     def _parse_eval_data(self) -> None:
-        datadir_eval = os.path.join(os.getcwd(), "./src/eval")
-        ## TODO: If we already have a lock file, just return that
         columns = ["addcode", "Condition", "TextResponse"]
         # Read the excel files
-        eval_far_data = pd.read_excel(os.path.join(datadir_eval, "Alg_Far_NEW.xlsx" ), usecols=columns, engine="openpyxl")\
+        eval_far_data = pd.read_excel(os.path.join(self.eval_dir, "Alg_Far_NEW.xlsx" ), usecols=columns, engine="openpyxl")\
             .rename(columns={"TextResponse": "response"})
-        eval_obj_data = pd.read_excel(os.path.join(datadir_eval, "Alg_Obj_NEW.xlsx" ), usecols=columns, engine="openpyxl")\
+        eval_obj_data = pd.read_excel(os.path.join(self.eval_dir, "Alg_Obj_NEW.xlsx" ), usecols=columns, engine="openpyxl")\
             .rename(columns={"TextResponse": "response"})
         eval_far_data = eval_far_data[eval_far_data['response'].notna()]
         eval_obj_data = eval_obj_data[eval_obj_data['response'].notna()]
@@ -116,15 +91,15 @@ class LDHData:
             "obj": self.collapse_eval_data(eval_obj_data)
         }
 
-    # Functions to read and save compressed data files
-    def pickle_data(self) -> None:
-        try: # downgrade to protocol 4 for python 3.6 compatibility
-            self.dataframes['train']['far'].to_pickle("./src/training/far.pkl", protocol=4)
-            self.dataframes['train']['obj'].to_pickle("./src/training/obj.pkl", protocol=4)
-            self.dataframes['eval']['far'].to_pickle("./src/eval/far.pkl", protocol=4)
-            self.dataframes['eval']['obj'].to_pickle("./src/eval/obj.pkl", protocol=4)
-        except:
-            pass 
+    # # Functions to read and save compressed data files
+    # def pickle_data(self) -> None:
+    #     try: # downgrade to protocol 4 for python 3.6 compatibility
+    #         self.dataframes['train']['far'].to_pickle(Path.join(self.training_dir, "far.pkl"), protocol=4)
+    #         self.dataframes['train']['obj'].to_pickle(Path.join(self.training_dir, "obj.pkl"), protocol=4)
+    #         self.dataframes['eval']['far'].to_pickle(Path.join(self.training_dir, "far.pkl"), protocol=4)
+    #         self.dataframes['eval']['obj'].to_pickle(Path.join(self.training_dir, "obj.pkl"), protocol=4)
+    #     except:
+    #         pass 
 def _expand_response(input_response: str) -> List[str]:
     sentences = sent_tokenize(input_response)
     return sentences

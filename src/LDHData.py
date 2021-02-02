@@ -20,6 +20,12 @@ class LDHData:
         self.eval_dir = config.eval_dir
         self.datasets = defaultdict(str)
 
+    @property
+    def train_dataset(self):
+        return self.datasets.get('train', None)
+
+    def eval_dataset(self):
+        return self.datasets.get('eval', None)
     
     def load_training_data(self, as_pandas=False, save_datasets=True) -> None:
         # Try loading the dataset from disk. If we can't, reparse
@@ -63,16 +69,7 @@ class LDHData:
         collapsed = collapsed.drop(['Condition', 'response'], axis=1).rename(columns={0: 'response'}).dropna(subset=["addcode", 'response'])
         collapsed = collapsed[collapsed['response'] != "."]
         return collapsed
-    
-    def encode_datasets(self, tokenizer, **tokenizer_args) -> Dict:
-        ds = self.datasets
-        ds.map(lambda batch: tokenizer(
-                batch['response'],
-                add_special_tokens=True,
-                padding="max_length",
-                truncation=True), **tokenizer_args)
-        ds.set_format(type="torch", output_all_columns=True)
-        return ds
+
 
     # Functions to read the data files directly
     def _parse_training_data(self, train_dir: str) -> Dict[str, pd.DataFrame]:

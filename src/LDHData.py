@@ -24,6 +24,7 @@ class LDHData:
     def train_dataset(self):
         return self.datasets.get('train', None)
 
+    @property
     def eval_dataset(self):
         return self.datasets.get('eval', None)
     

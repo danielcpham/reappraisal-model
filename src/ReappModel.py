@@ -43,8 +43,5 @@ class ReappModel(nn.Module):
         # Manually attach the classifier head
          # (bs, num_labels)
         predicted = self.classify(bert_output)
-        predicted = self.reapp_scorer(predicted)
         loss = self.loss(predicted.float(), score.float())
-        print(predicted)
-        print(loss)
         return loss, bert_output

@@ -12,8 +12,6 @@ from transformers import PreTrainedTokenizer
 
 from .LDHConfig import LDHConfig
 
-
-
 class LDHData:
     def __init__(self, tokenizer=None, config: LDHConfig = None):
         if not config:

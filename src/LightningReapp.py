@@ -44,14 +44,15 @@ class LightningReapp(lit.LightningModule):
         # Compute the loss
         output = self(input_ids, attention_mask)
         loss = self.loss(output.sum(dim=1), score)
-        self.log('train/loss', self.loss)
+        self.log('train_loss', self.loss)
         return loss
 
-    # def validation_step(self, batch, batch_idx):
-    #     input_ids = batch["input_ids"]
-    #     attention_mask = batch["attention_mask"]
-    #     score = batch["score"]
-    #     output = self(input_ids, attention_mask)
-    #     loss = self.loss(output.sum(dim=1), score)
-    #     self.log('val/loss', loss)
-    #     return loss
+    def validation_step(self, batch, batch_idx):
+        input_ids = batch["input_ids"]
+        attention_mask = batch["attention_mask"]
+        score = batch["score"]
+        output = self(input_ids, attention_mask)
+        loss = self.loss(output.sum(dim=1), score)
+        self.log('val_loss', loss)
+        return loss
+

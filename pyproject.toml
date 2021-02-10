@@ -24,6 +24,7 @@ pylama = "^7.7.1"
 pytest-mock = "^3.5.1"
 pytest-cov = "^2.11.1"
 optuna = "^2.5.0"
+black = {version = "^20.8b1", allow-prereleases = true}
 
 
 [build-system]

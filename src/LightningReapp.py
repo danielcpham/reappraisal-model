@@ -1,3 +1,4 @@
+import pandas as pd
 import pytorch_lightning as lit
 from torch import nn, optim
 from torch.nn import functional as F
@@ -18,7 +19,7 @@ class LightningReapp(lit.LightningModule):
         self.avg = nn.AvgPool1d(150)
 
         self.classifier = nn.Sequential(
-            nn.Linear(768, 50), nn.ReLU(), nn.Linear(50, 10), nn.ReLU()
+            nn.Linear(768, 768), nn.Linear(768, 50), nn.ReLU(), nn.Linear(50, 10), nn.ReLU()
         )
 
         # define metrics
@@ -40,12 +41,22 @@ class LightningReapp(lit.LightningModule):
         input_ids = batch["input_ids"]
         attention_mask = batch["attention_mask"]
         score = batch["score"]
-
         # Compute the loss
         output = self(input_ids, attention_mask)
         loss = self.loss(output.sum(dim=1), score)
-        self.log('train_loss', self.loss)
+        self.log('train_loss', loss)
         return loss
+
+    def test_step(self, batch, batch_idx):
+        input_ids = batch["input_ids"]
+        attention_mask = batch["attention_mask"]
+        output = self(input_ids, attention_mask)
+        return {
+            'predict': pd.DataFrame({
+                'response': batch['response'],
+                'output': output.sum(dim=1).cpu()
+            })
+        }
 
     def validation_step(self, batch, batch_idx):
         input_ids = batch["input_ids"]

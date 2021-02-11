@@ -12,8 +12,8 @@ class LDHData:
     def __init__(
         self,
         tokenizer,
-        input_dir: os.PathLike = Path.cwd(),
-        output_dir: os.PathLike = Path.cwd(),
+        input_dir: os.PathLike = Path.cwd() / 'data',
+        output_dir: os.PathLike = Path.cwd() / 'output',
     ):
         """Initializes the directories from which the data will be coming and leaving.
 
@@ -23,27 +23,12 @@ class LDHData:
         """
         self.tokenizer = tokenizer
         self.train_dir = (
-            Path(input_dir) / "data" / "training"
+            Path(input_dir) / "training"
         )  # Where the training data is coming from
-        self.eval_dir = Path(input_dir) / "data" / "eval"  # Test data
+        self.eval_dir = Path(input_dir) / "eval"  # Test data
         # TODO: assert that the directories are valid.
         self.datasets = defaultdict(str)
         self.save_dir = Path(output_dir)  # Where cached data is saved.
-
-    def encode(self, ds, ds_output_dir):
-        encoded_ds = self.tokenizer(
-            ds["response"],
-            add_special_tokens=True,
-            padding="max_length",
-            max_length=150,
-        )
-        encoded_ds.set_format(
-            type="torch",
-            columns=["input_ids", "attention_mask", "score"],
-            output_all_columns=True,
-        )
-        encoded_ds.save_to_disk(ds_output_dir)
-        return encoded_ds
 
     @property
     def train_dataset(self):
@@ -54,7 +39,7 @@ class LDHData:
         return self.datasets["eval"]
 
     def load_training_data(
-        self, encoded=True, s_pandas=False, save_datasets=True
+        self, save_datasets=True
     ) -> None:
         training_save_dir = self.save_dir / "training"
         try:
@@ -71,16 +56,12 @@ class LDHData:
                     "obj": Dataset.from_pandas(train_df_dict["obj"]),
                 }
             )
-            if encoded:
-                self.datasets["train"] = self.datasets["train"].map(
-                    lambda ds: self.encode(ds, training_save_dir)
-                )
             if save_datasets:
                 print(f"Saving training dataset to {training_save_dir}")
                 self.datasets["train"].save_to_disk(training_save_dir)
 
-    def load_eval_data(self, encoded=True, as_pandas=False, save_datasets=True) -> None:
-        eval_save_dir = self.save_dir / "training"
+    def load_eval_data(self, save_datasets=True) -> None:
+        eval_save_dir = self.save_dir / "eval"
         try:
             self.datasets["eval"] = DatasetDict.load_from_disk(eval_save_dir)
             print("Evaluation data loaded from disk.")
@@ -93,10 +74,6 @@ class LDHData:
                     "obj": Dataset.from_pandas(eval_df_dict["obj"]),
                 }
             )
-            if encoded:
-                self.datasets["eval"] = self.datasets["eval"].map(
-                    lambda ds: self.encode(ds, eval_save_dir)
-                )
             if save_datasets:
                 print(f"Saving evaluation dataset to {eval_save_dir}")
                 self.datasets["eval"].save_to_disk(eval_save_dir)

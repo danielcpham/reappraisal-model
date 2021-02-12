@@ -3,6 +3,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Dict, List
 
+import numpy as np
 import pandas as pd
 from datasets import Dataset, DatasetDict
 from nltk.tokenize import sent_tokenize
@@ -39,10 +40,12 @@ class LDHData:
         return self.datasets["eval"]
 
     def load_training_data(
-        self, save_datasets=True
+        self, force_reload=False, save_datasets=True
     ) -> None:
         training_save_dir = self.save_dir / "training"
         try:
+            if force_reload:
+                raise Exception()
             # If the training data has already been save, load it from the save_directory
             self.datasets["train"] = DatasetDict.load_from_disk(training_save_dir)
             print("Training data loaded from disk.")
@@ -60,9 +63,11 @@ class LDHData:
                 print(f"Saving training dataset to {training_save_dir}")
                 self.datasets["train"].save_to_disk(training_save_dir)
 
-    def load_eval_data(self, save_datasets=True) -> None:
+    def load_eval_data(self, force_reload=False, save_datasets=True) -> None:
         eval_save_dir = self.save_dir / "eval"
         try:
+            if force_reload:
+                raise Exception()
             self.datasets["eval"] = DatasetDict.load_from_disk(eval_save_dir)
             print("Evaluation data loaded from disk.")
         except:
@@ -82,24 +87,21 @@ class LDHData:
         """Let df be the dataframe obtained from loading evaluation data.
         Expand the text in 'response' to have a single sentence per response.
         """
-        new_responses = (
-            df["response"]
-            .map(lambda resp: _expand_response(resp))
-            .apply(pd.Series)
-            .unstack()
-            .reset_index()
-            .drop("level_1", axis=1)
-        )
-        collapsed = df.merge(
-            new_responses, right_on="level_0", left_on=df.index, how="right"
-        )
-        collapsed = (
-            collapsed.drop(["Condition", "response"], axis=1)
-            .rename(columns={0: "response"})
-            .dropna(subset=["addcode", "response"])
-        )
-        collapsed = collapsed[collapsed["response"] != "."]
-        return collapsed
+        df['response'] = df['response'].map(sent_tokenize, na_action='ignore')
+        texts = df['response'].dropna()
+        lens_of_lists = texts.apply(len)
+        origin_rows = range(texts.shape[0])
+        destination_rows = np.repeat(origin_rows, lens_of_lists)
+        non_list_cols = [idx for idx, col in enumerate(df.columns) 
+                        if col != 'response']
+        expanded_df = df.iloc[destination_rows, non_list_cols].copy()
+        expanded_df['split_response'] = [i for items in texts
+                                    for i in items]
+        expanded_df = expanded_df[expanded_df['split_response'] != "."].reset_index(drop=True)
+        assert expanded_df.apply(pd.unique)['daycode'].size == 5
+        assert expanded_df.apply(pd.unique)['Condition'].size == 3
+        expanded_df.rename(columns={'split_response': 'response'}, inplace=True)
+        return expanded_df
 
     # Functions to read the data files directly
     def _parse_training_data(self, train_dir: str) -> Dict[str, pd.DataFrame]:
@@ -121,17 +123,14 @@ class LDHData:
         return {"far": train_far_data, "obj": train_obj_data}
 
     def _parse_eval_data(self, eval_dir: str) -> Dict[str, pd.DataFrame]:
-        columns = ["addcode", "Condition", "TextResponse"]
         # Read the excel files
         eval_far_data = pd.read_excel(
             os.path.join(self.eval_dir, "Alg_Far_NEW.xlsx"),
-            usecols=columns,
-            engine="openpyxl",
+            engine="openpyxl"
         ).rename(columns={"TextResponse": "response"})
         eval_obj_data = pd.read_excel(
             os.path.join(self.eval_dir, "Alg_Obj_NEW.xlsx"),
-            usecols=columns,
-            engine="openpyxl",
+            engine="openpyxl"
         ).rename(columns={"TextResponse": "response"})
         eval_far_data = eval_far_data[eval_far_data["response"].notna()]
         eval_obj_data = eval_obj_data[eval_obj_data["response"].notna()]
@@ -139,7 +138,6 @@ class LDHData:
             "far": self.collapse_eval_data(eval_far_data),
             "obj": self.collapse_eval_data(eval_obj_data),
         }
-
 
 def _expand_response(input_response: str) -> List[str]:
     sentences = sent_tokenize(input_response)

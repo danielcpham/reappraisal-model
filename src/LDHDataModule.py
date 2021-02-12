@@ -18,13 +18,14 @@ DEFAULT_TOKENIZER = AutoTokenizer.from_pretrained(
             "distilbert-base-uncased-finetuned-sst-2-english", use_fast=True)
 
 class LDHDataModule(lit.LightningDataModule):
-    def __init__(self, batch_size=16, tokenizer=DEFAULT_TOKENIZER, strat='obj', kfolds=5):
+    def __init__(self, batch_size=16, tokenizer=DEFAULT_TOKENIZER, strat='obj', kfolds=5, force_reload=False):
         super().__init__()
         self.strat = strat
         self.batch_size = batch_size
         self.tokenizer = tokenizer
         self.kfolds = kfolds
         self.current_split = 0
+        self.force_reload = force_reload
 
         data = LDHData(self.tokenizer) 
         data.load_training_data()
@@ -41,7 +42,7 @@ class LDHDataModule(lit.LightningDataModule):
             )
         )
         encoded_ds.set_format(
-            type="torch", columns=["input_ids", "attention_mask", "score"]
+            type="torch", columns=["input_ids", "attention_mask", "score"],
         )
         self.train_data = encoded_ds
 
@@ -53,9 +54,8 @@ class LDHDataModule(lit.LightningDataModule):
         cv = GroupKFold(self.kfolds)
         self.splits = list(cv.split(self.train_data, groups=indices))
 
-        data.load_eval_data()
+        data.load_eval_data(self.force_reload)
         eval_data: Dataset = data.eval_dataset[self.strat]
-
         print("Encoding Test Data:")
         encoded_ds = eval_data.map(
             lambda ds: self.tokenizer(
@@ -69,7 +69,6 @@ class LDHDataModule(lit.LightningDataModule):
         encoded_ds.set_format(
             type="torch", columns=["input_ids", "attention_mask"], output_all_columns=True
         )
-
         self.eval_data = encoded_ds
 
 

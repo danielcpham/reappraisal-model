@@ -86,6 +86,7 @@ class LDHData:
     def collapse_eval_data(self, df: pd.DataFrame):
         """Let df be the dataframe obtained from loading evaluation data.
         Expand the text in 'response' to have a single sentence per response.
+        source: https://medium.com/@johnadungan/expanding-lists-in-panda-dataframes-2724803498f8
         """
         df['response'] = df['response'].map(sent_tokenize, na_action='ignore')
         texts = df['response'].dropna()

@@ -29,8 +29,8 @@ class LDHDataModule(lit.LightningDataModule):
         data = LDHData(self.tokenizer) 
         
         self.train_data = self.load_training_data(data, force_reload)
-        self.indices = self.assign_groups()
-        self.splits = self.generate_splits(self.indices)
+        self.indices = self.assign_groups() # Get an array of groups assigned for each data point
+        self.splits = self.generate_splits(self.indices) # Use GroupKFold to generate specific splits
         self.eval_data = self.load_eval_data(data, force_reload)
 
     def load_training_data(self, data:LDHData, force_reload):

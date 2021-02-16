@@ -10,7 +10,6 @@ from torch.utils.data import RandomSampler, DataLoader
 from torch.utils.data.dataset import Subset
 from transformers import AutoTokenizer
 
-import pdb
 
 from .LDHData import LDHData
 
@@ -32,6 +31,7 @@ class LDHDataModule(lit.LightningDataModule):
         self.indices = self.assign_groups() # Get an array of groups assigned for each data point
         self.splits = self.generate_splits(self.indices) # Use GroupKFold to generate specific splits
         self.eval_data = self.load_eval_data(data, force_reload)
+
 
     def load_training_data(self, data:LDHData, force_reload):
         data.load_training_data(force_reload)

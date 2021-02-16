@@ -4,23 +4,24 @@ from torch import nn, optim
 from torch.nn import functional as F
 from transformers import AutoModel
 class LightningReapp(lit.LightningModule):
-    def __init__(self, lr=1e-3):
+    def __init__(self, config, pretrained_model=None):
         super().__init__()
 
-        self.lr = lr
+        self.lr = config['lr']
+        self.hidden_layer_size = config['hidden_layer_size']
         self.save_hyperparameters()
 
-        self.model = AutoModel.from_pretrained(
-            "distilbert-base-uncased-finetuned-sst-2-english"
-        )
+        pretrained_model = "distilbert-base-uncased-finetuned-sst-2-english" if pretrained_model is None else pretrained_model
+
+        self.model = AutoModel.from_pretrained(pretrained_model)
 
         self.avg = nn.AvgPool1d(150)
 
         self.classifier = nn.Sequential(
             nn.Linear(768, 768),
-            nn.Linear(768, 50),
+            nn.Linear(768, self.hidden_layer_size),
             nn.ReLU(),
-            nn.Linear(50, 10),
+            nn.Linear(self.hidden_layer_size, 10),
             nn.ReLU(),
         )
 
@@ -58,6 +59,11 @@ class LightningReapp(lit.LightningModule):
         self.log("val_loss", loss)
         return loss
 
+    def validation_epoch_end(self, val_outputs):
+        ("ON VAL EPOCH END")
+        for pred in val_outputs:
+            print(pred)
+
     def test_step(self, batch, batch_idx):
         input_ids = batch["input_ids"]
         attention_mask = batch["attention_mask"]
@@ -77,19 +83,19 @@ class LightningReapp(lit.LightningModule):
 
 
 class ReappTrainer(lit.Trainer):
-    def __init__(self, num_folds, **kwargs):
+    def __init__(self, num_folds=3,  **kwargs):
         # TODO: have different args for dev/full and gpu/cpu
-        super().__init__(**kwargs)
+        super().__init__(
+            **kwargs)
         # TODO: add onfitend callback to get metrics for kfold validation
         self.num_folds = num_folds
 
-    def train_cv(self, system, ldhdata):
-        all_metrics = []
-        for i in range(self.num_folds):
-            ldhdata.current_split = i
-            system = LightningReapp()
-            print(f"=== Running Split {i} ===")
-            self.fit(system, ldhdata)
-            all_metrics.append(self.logged_metrics)
-        # TODO: aggregate metrics over CV scores
-        return all_metrics
+    # def train_cv(self, model, ldhdatamodule):
+    #     all_metrics = []
+    #     for i in range(self.num_folds):
+    #         model = LightningReapp()
+    #         print(f"=== Running Split {i} ===")
+    #         self.fit(model, ldhdatamodule.get_train_dataloader(i))
+    #         all_metrics.append(self.logged_metrics)
+    #     # TODO: aggregate metrics over CV scores
+    #     return all_metrics

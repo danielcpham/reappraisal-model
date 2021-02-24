@@ -6,8 +6,14 @@ index = {"LDHData": "LDHData.ipynb",
          "LDHDataModule": "LDHData.ipynb",
          "DEFAULT_TOKENIZER": "LDHData.ipynb",
          "LightningReapp": "LightningReapp.ipynb",
-         "KFoldTrainer": "Trainers.ipynb",
-         "cross_validate": "Trainers.ipynb"}
+         "get_avg_masked_encoding": "LightningReapp.ipynb",
+         "default_model_name": "LightningReapp.ipynb",
+         "kfold_train": "Trainers.ipynb",
+         "default_config": "Trainers.ipynb",
+         "train_tune": "Trainers.ipynb",
+         "parser": "Trainers.ipynb",
+         "callback_tuner": "Trainers.ipynb",
+         "default_tune_config": "Trainers.ipynb"}
 
 modules = ["ldhdata.py",
            "lightningreapp.py",
@@ -15,6 +21,6 @@ modules = ["ldhdata.py",
 
 doc_url = "https://danielcpham.github.io/reappraisalmodel/"
 
-git_url = "https://github.com/danielcpham/reappraisalmodel/tree/main/"
+git_url = "https://github.com/danielcpham/reappraisalmodel/tree/lightning/"
 
 def custom_doc_links(name): return None

@@ -11,5 +11,5 @@ __pycache__/*
 cache-*
 
 output/*
-lightning_logs/*
+lightning_logs*/*
 

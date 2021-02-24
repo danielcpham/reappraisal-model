@@ -3,7 +3,7 @@
 __all__ = ['LDHData', 'LDHDataModule', 'DEFAULT_TOKENIZER']
 
 # Cell
-#export
+# export
 import os
 from collections import defaultdict
 from typing import Dict, List
@@ -17,20 +17,15 @@ from pathlib import Path
 
 from nltk.tokenize import sent_tokenize
 from sklearn.model_selection import GroupKFold
-from torch.utils.data import RandomSampler, DataLoader
+from torch.utils.data import DataLoader
 from torch.utils.data.dataset import Subset
 
 # Cell
 class LDHData:
-    def __init__(
-        self,
-        tokenizer,
-        data_dir
-    ):
-        """Initializes the directories from which the data will be coming and leaving.
-        """
-        input_dir =  Path( data_dir, 'data')
-        output_dir = Path( data_dir, 'output')
+    def __init__(self, data_dir):
+        """Initializes the directories from which the data will be coming and leaving."""
+        input_dir = Path(data_dir, "data")
+        output_dir = Path(data_dir, "output")
         self.train_dir = (
             input_dir / "training"
         )  # Where the training data is coming from
@@ -47,9 +42,7 @@ class LDHData:
     def eval_dataset(self):
         return self.datasets["eval"]
 
-    def load_training_data(
-        self, force_reload=False, save_datasets=True
-    ) -> None:
+    def load_training_data(self, force_reload=False, save_datasets=True) -> None:
         training_save_dir = self.save_dir / "training"
         try:
             if force_reload:
@@ -96,50 +89,56 @@ class LDHData:
         Expand the text in 'response' to have a single sentence per response.
         source: https://medium.com/@johnadungan/expanding-lists-in-panda-dataframes-2724803498f8
         """
-        df['response'] = df['response'].map(sent_tokenize, na_action='ignore')
-        texts = df['response'].dropna()
+        df["response"] = df["response"].map(sent_tokenize, na_action="ignore")
+        texts = df["response"].dropna()
         lens_of_lists = texts.apply(len)
         origin_rows = range(texts.shape[0])
         destination_rows = np.repeat(origin_rows, lens_of_lists)
-        non_list_cols = [idx for idx, col in enumerate(df.columns)
-                        if col != 'response']
+        non_list_cols = [idx for idx, col in enumerate(df.columns) if col != "response"]
         expanded_df = df.iloc[destination_rows, non_list_cols].copy()
-        expanded_df['split_response'] = [i for items in texts
-                                    for i in items]
-        expanded_df = expanded_df[expanded_df['split_response'] != "."].reset_index(drop=True)
-        assert expanded_df.apply(pd.unique)['daycode'].size == 5
-        assert expanded_df.apply(pd.unique)['Condition'].size == 3
-        expanded_df.rename(columns={'split_response': 'response'}, inplace=True)
+        expanded_df["split_response"] = [i for items in texts for i in items]
+        expanded_df = expanded_df[expanded_df["split_response"] != "."].reset_index(
+            drop=True
+        )
+        assert expanded_df.apply(pd.unique)["daycode"].size == 5
+        assert expanded_df.apply(pd.unique)["Condition"].size == 3
+        expanded_df.rename(columns={"split_response": "response"}, inplace=True)
         return expanded_df
 
     # Functions to read the data files directly
-    def _parse_training_data(self, train_dir: str) -> Dict[str, pd.DataFrame]:
-        files = os.listdir(train_dir)
-        dfs: List[pd.DataFrame] = []
-        for file in files:
-            if file.endswith(".csv"):
-                filename = os.path.join(train_dir, file)
-                dfs.append(
-                    pd.read_csv(
-                        filename, header=0, names=["response", "spatiotemp", "obj"]
-                    )
-                )
-        ldh: pd.DataFrame = pd.concat(dfs, ignore_index=True)
-        train_far_data = ldh[["response", "spatiotemp"]].rename(
-            columns={"spatiotemp": "score"}
-        )
-        train_obj_data = ldh[["response", "obj"]].rename(columns={"obj": "score"})
-        return {"far": train_far_data, "obj": train_obj_data}
+    def _parse_training_data(self, train_data_dir: str) -> Dict[str, pd.DataFrame]:
+        study1 = pd.read_csv(Path(train_data_dir, "Master_Final_TrainingData.csv", usecols = ['Text Response', "AVG_OBJ", "AVG_FAR"]))
 
-    def _parse_eval_data(self, eval_dir: str) -> Dict[str, pd.DataFrame]:
+        study1far = study1.rename(columns={
+            'Text Response': 'response',
+            'AVG_FAR': 'score'
+        }).drop(columns='AVG_OBJ')
+
+        study1obj = study1.rename(columns={
+            'Text Response': 'response',
+            'AVG_OBJ': 'score'
+        }).drop(columns='AVG_FAR')
+
+        return {
+            'far': study1far,
+            'obj': study1obj
+        }
+
+    def _parse_eval_data(self, eval_data_dir: str) -> Dict[str, pd.DataFrame]:
+        """ Parses evaluation data.
+
+        Args:
+            eval_dir (str): The folder in which original training data is stored.
+
+        Returns:
+            Dict[str, pd.DataFrame]: [description]
+        """
         # Read the excel files
         eval_far_data = pd.read_excel(
-            os.path.join(self.eval_dir, "Alg_Far_NEW.xlsx"),
-            engine="openpyxl"
+            os.path.join(eval_data_dir, "Alg_Far_NEW.xlsx"), engine="openpyxl"
         ).rename(columns={"TextResponse": "response"})
         eval_obj_data = pd.read_excel(
-            os.path.join(self.eval_dir, "Alg_Obj_NEW.xlsx"),
-            engine="openpyxl"
+            os.path.join(eval_data_dir, "Alg_Obj_NEW.xlsx"), engine="openpyxl"
         ).rename(columns={"TextResponse": "response"})
         eval_far_data = eval_far_data[eval_far_data["response"].notna()]
         eval_obj_data = eval_obj_data[eval_obj_data["response"].notna()]
@@ -147,6 +146,8 @@ class LDHData:
             "far": self.collapse_eval_data(eval_far_data),
             "obj": self.collapse_eval_data(eval_obj_data),
         }
+
+
 #
 def _expand_response(input_response: str) -> List[str]:
     sentences = sent_tokenize(input_response)
@@ -155,27 +156,37 @@ def _expand_response(input_response: str) -> List[str]:
 
 # Cell
 DEFAULT_TOKENIZER = AutoTokenizer.from_pretrained(
-            "distilbert-base-uncased-finetuned-sst-2-english", use_fast=True)
+    "distilbert-base-uncased-finetuned-sst-2-english", use_fast=True
+)
 
 class LDHDataModule(lit.LightningDataModule):
-    """
-    """
-    def __init__(self, data_dir, batch_size=16, tokenizer=DEFAULT_TOKENIZER, strat='obj', kfolds=5, force_reload=False):
+    def __init__(
+        self,
+        data_dir,
+        batch_size=16,
+        tokenizer=DEFAULT_TOKENIZER,
+        strat="obj",
+        kfolds=5,
+        force_reload=False,
+    ):
         super().__init__()
         self.strat = strat
         self.batch_size = batch_size
         self.tokenizer = tokenizer
         self.kfolds = kfolds
         self.current_split = 0
-        data = LDHData(self.tokenizer, data_dir)
+        data = LDHData(data_dir)
 
         self.train_data = self.load_training_data(data, force_reload)
-        self.indices = self.assign_groups() # Get an array of groups assigned for each data point
-        self.splits = self.generate_splits(self.indices) # Use GroupKFold to generate specific splits
+        self.indices = (
+            self.assign_groups()
+        )  # Get an array of groups assigned for each data point
+        self.splits = self.generate_splits(
+            self.indices
+        )  # Use GroupKFold to generate specific splits
         self.eval_data = self.load_eval_data(data, force_reload)
 
-
-    def load_training_data(self, data:LDHData, force_reload):
+    def load_training_data(self, data: LDHData, force_reload):
         data.load_training_data(force_reload)
         train_data: Dataset = data.train_dataset[self.strat]
         print("Encoding Train Data:")
@@ -188,11 +199,12 @@ class LDHDataModule(lit.LightningDataModule):
             )
         )
         encoded_ds.set_format(
-            type="torch", columns=["input_ids", "attention_mask", "score"],
+            type="torch",
+            columns=["input_ids", "attention_mask", "score"],
         )
         return encoded_ds
 
-    def load_eval_data(self, data:LDHData, force_reload):
+    def load_eval_data(self, data: LDHData, force_reload):
         data.load_eval_data(force_reload)
         eval_data: Dataset = data.eval_dataset[self.strat]
         print("Encoding Test Data:")
@@ -206,12 +218,14 @@ class LDHDataModule(lit.LightningDataModule):
         )
         # Need to include addcode here as well
         encoded_ds.set_format(
-            type="torch", columns=["input_ids", "attention_mask"], output_all_columns=True
+            type="torch",
+            columns=["input_ids", "attention_mask"],
+            output_all_columns=True,
         )
         return encoded_ds
 
     def assign_groups(self):
-        """ Assign each datapoint to a group for later kfold validation
+        """Assign each datapoint to a group for later kfold validation
 
         Returns:
             [type]: [description]
@@ -227,12 +241,16 @@ class LDHDataModule(lit.LightningDataModule):
         return splits
 
     def get_train_dataloader(self, split: int):
-        train_idx = self.splits[split][0].tolist() # retrieve the split generated by GroupKFold
+        train_idx = self.splits[split][
+            0
+        ].tolist()  # retrieve the split generated by GroupKFold
         data = Subset(self.train_data, train_idx)
         return DataLoader(data, batch_size=self.batch_size)
 
     def get_val_dataloader(self, split: int):
-        val_idx = self.splits[split][1].tolist() # retrieve the split generated by GroupKFold
+        val_idx = self.splits[split][
+            1
+        ].tolist()  # retrieve the split generated by GroupKFold
         data = Subset(self.train_data, val_idx)
         return DataLoader(data, batch_size=self.batch_size)
 

@@ -82,8 +82,8 @@ class LightningReapp(lit.LightningModule):
 
     def validation_epoch_end(self, outputs):
         avg_loss = torch.stack([x["loss"] for x in outputs]).mean()
-        # observed = torch.stack([x["observed"] for x in outputs])
-        # expected = torch.stack([x["expected"] for x in outputs])
+        observed = torch.stack([x["observed"] for x in outputs])
+        expected = torch.stack([x["expected"] for x in outputs])
         # calculate spearman's r and pearson's r
         #pytorch_lightning.metrics.functional.r2score(preds, target, adjusted=0, multioutput='uniform_average')
 
@@ -95,17 +95,24 @@ class LightningReapp(lit.LightningModule):
         attention_mask = batch["attention_mask"]
         output = self(input_ids, attention_mask)
         # Eval step
-        return {
-            "predict": pd.DataFrame(
+
+        result = pd.DataFrame(
                 {
                     "addcode": batch["addcode"],
                     "daycode": batch["daycode"],
                     "condition": batch["Condition"],
                     "response": batch["response"],
                     "output": output.sum(dim=1),
-                }
-            )
-        }
+                })
+        return {"predict": result}
+
+    def test_epoch_end(self, outputs):
+        dfs = []
+        for output in outputs:
+            dfs.append(output['predict'])
+        output_df = pd.concat(dfs)
+        output_df.to_csv(f"output.csv")
+
 
 
 # export

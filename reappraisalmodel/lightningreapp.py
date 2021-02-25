@@ -3,6 +3,8 @@
 __all__ = ['LightningReapp', 'get_avg_masked_encoding', 'default_model_name']
 
 # Cell
+
+import pickle
 import pandas as pd
 import pytorch_lightning as lit
 import torch
@@ -82,8 +84,8 @@ class LightningReapp(lit.LightningModule):
 
     def validation_epoch_end(self, outputs):
         avg_loss = torch.stack([x["loss"] for x in outputs]).mean()
-        observed = torch.stack([x["observed"] for x in outputs])
-        expected = torch.stack([x["expected"] for x in outputs])
+        # observed = torch.stack([x["observed"] for x in outputs])
+        # expected = torch.stack([x["expected"] for x in outputs])
         # calculate spearman's r and pearson's r
         #pytorch_lightning.metrics.functional.r2score(preds, target, adjusted=0, multioutput='uniform_average')
 
@@ -96,22 +98,23 @@ class LightningReapp(lit.LightningModule):
         output = self(input_ids, attention_mask)
         # Eval step
 
-        result = pd.DataFrame(
-                {
-                    "addcode": batch["addcode"],
-                    "daycode": batch["daycode"],
-                    "condition": batch["Condition"],
-                    "response": batch["response"],
-                    "output": output.sum(dim=1),
-                })
-        return {"predict": result}
+        # result = pd.DataFrame(
+        #         {
+        #             "addcode": batch["addcode"],
+        #             "daycode": batch["daycode"],
+        #             "condition": batch["Condition"],
+        #             "response": batch["response"],
+        #             "output": output.sum(dim=1),
+        #         })
+        return {"predict": (batch_idx, output.sum(dim=1))}
 
     def test_epoch_end(self, outputs):
         dfs = []
         for output in outputs:
-            dfs.append(output['predict'])
-        output_df = pd.concat(dfs)
-        output_df.to_csv(f"output.csv")
+            batch_idx, result = output['predict']
+            dfs.append((batch_idx, result.cpu().tolist()))
+        with open(f"./output_reapp.pkl", 'wb+') as f:
+            pickle.dump(dfs, f )
 
 
 

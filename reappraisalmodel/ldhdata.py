@@ -220,7 +220,7 @@ class LDHDataModule(lit.LightningDataModule):
         encoded_ds.set_format(
             type="torch",
             columns=["input_ids", "attention_mask"],
-            output_all_columns=True,
+            output_all_columns=False,
         )
         return encoded_ds
 

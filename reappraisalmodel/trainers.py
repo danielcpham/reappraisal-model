@@ -33,7 +33,7 @@ def kfold_train(k: int, ldhdata, strat='far', **trainer_kwargs) -> None:
     early_stop_checkpoint = EarlyStopping(
       monitor='val_loss',
       mode='min',
-      min_delta=0.0001,
+      min_delta=0.001,
       patience=5,
       verbose=False
     )

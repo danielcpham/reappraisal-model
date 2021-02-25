@@ -21,6 +21,6 @@ modules = ["ldhdata.py",
 
 doc_url = "https://danielcpham.github.io/reappraisalmodel/"
 
-git_url = "https://github.com/danielcpham/reappraisalmodel/tree/lightning/"
+git_url = "https://github.com/danielcpham/reappraisalmodel/tree/main/"
 
 def custom_doc_links(name): return None

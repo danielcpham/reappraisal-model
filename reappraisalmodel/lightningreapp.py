@@ -3,7 +3,6 @@
 __all__ = ['LightningReapp', 'get_avg_masked_encoding', 'default_model_name']
 
 # Cell
-import path
 import pickle
 
 import pandas as pd
@@ -77,21 +76,22 @@ class LightningReapp(lit.LightningModule):
         output = self(input_ids, attention_mask)
         observed = output.sum(dim=1)
         loss = self.val_loss(observed, expected)
-        self.log("val_loss", loss)
         return {
-            "loss": loss,
-            "expected": expected,
-            "observed": observed
+            "val_loss": loss,
+            'r2score': r2score(observed, expected),
+            'explained_var': explained_variance(observed, expected)
         }
 
     def validation_epoch_end(self, outputs):
-        avg_loss = torch.stack([x["loss"] for x in outputs]).mean()
-        observed = torch.stack([x["observed"] for x in outputs])
-        expected = torch.stack([x["expected"] for x in outputs])
+        avg_loss = torch.stack([x["val_loss"] for x in outputs]).mean()
+        r2score = torch.stack([x["r2score"] for x in outputs]).mean()
+        explained_var = torch.stack([x["explained_var"] for x in outputs]).mean()
+
         # calculate spearman's r and pearson's r
         self.log("val_loss", avg_loss)
-        self.log('pearson-r', math.sqrt(r2score(observed, expected)))
-        self.log('explained-var', explained_variance(observed, expected))
+        self.log('r2score', r2score)
+        self.log('explained_var', explained_var)
+
 
     # TESTING LOOP
     def test_step(self, batch, batch_idx):
@@ -99,15 +99,6 @@ class LightningReapp(lit.LightningModule):
         attention_mask = batch["attention_mask"]
         output = self(input_ids, attention_mask)
         # Eval step
-
-        # result = pd.DataFrame(
-        #         {
-        #             "addcode": batch["addcode"],
-        #             "daycode": batch["daycode"],
-        #             "condition": batch["Condition"],
-        #             "response": batch["response"],
-        #             "output": output.sum(dim=1),
-        #         })
         return {"predict": (batch_idx, output.sum(dim=1))}
 
     def test_epoch_end(self, outputs):
@@ -116,7 +107,7 @@ class LightningReapp(lit.LightningModule):
             batch_idx, result = output['predict']
             dfs.append((batch_idx, result.cpu().tolist()))
         with open(f"./output_reapp.pkl", 'wb+') as f:
-            pickle.dump(dfs, f )
+            pickle.dump(dfs, f)
 
 
 

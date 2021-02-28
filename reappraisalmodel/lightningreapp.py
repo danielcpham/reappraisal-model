@@ -3,11 +3,18 @@
 __all__ = ['LightningReapp', 'get_avg_masked_encoding', 'default_model_name']
 
 # Cell
+<<<<<<< HEAD
 
 import pickle
+=======
+import path
+import pickle
+
+>>>>>>> origin/add-metrics
 import pandas as pd
 import pytorch_lightning as lit
 import torch
+from pytorch_lightning.metrics.functional import r2score, explained_variance
 from torch import nn, optim
 from torch.nn import functional as F
 from transformers import AutoModel
@@ -87,9 +94,9 @@ class LightningReapp(lit.LightningModule):
         # observed = torch.stack([x["observed"] for x in outputs])
         # expected = torch.stack([x["expected"] for x in outputs])
         # calculate spearman's r and pearson's r
-        #pytorch_lightning.metrics.functional.r2score(preds, target, adjusted=0, multioutput='uniform_average')
-
         self.log("val_loss", avg_loss)
+        self.log('pearson-r', math.sqrt(r2score(observed, expected)))
+        self.log('explained-var', explained_variance(observed, expected))
 
     # TESTING LOOP
     def test_step(self, batch, batch_idx):

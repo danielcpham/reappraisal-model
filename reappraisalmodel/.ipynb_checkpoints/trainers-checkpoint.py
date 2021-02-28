@@ -22,7 +22,7 @@ default_config = {
 
 
 
-def kfold_train(k: int, ldhdata, strat, **trainer_kwargs) -> None:
+def kfold_train(k: int, ldhdata, strat='far', **trainer_kwargs) -> None:
     """Fits a LightningReapp instance with k-fold cross-validation.
     Args:
         k (int):
@@ -38,11 +38,10 @@ def kfold_train(k: int, ldhdata, strat, **trainer_kwargs) -> None:
       verbose=False
     )
 
+
     max_epochs = trainer_kwargs.pop('max_epochs', 20)
     gpus = trainer_kwargs.pop('gpus', 1 if torch.cuda.is_available() else None)
-
-    today = datetime.today().strftime('%Y%m%d')
-
+    
     for i in range(k):
         # Select the dataloaders for the given split.
         split = i
@@ -50,16 +49,9 @@ def kfold_train(k: int, ldhdata, strat, **trainer_kwargs) -> None:
         val_dl = ldhdata.get_val_dataloader(split)
 
         callback_checkpoint = ModelCheckpoint(
-            monitor='val_loss',
-            mode='min',
-            dirpath='output'
-            filename=f'{str(today)}-{strat}' + '-{epoch:.2d}-{val_loss:.02f}',
-            verbose=False,
-            save_last=False,
-            save_top_k=1,
-            save_weights_only=False,
-            period=1, # once every epoch
-        )
+            monitor='val_loss', verbose=False,
+            save_last=False, save_top_k=1, save_weights_only=False,
+            mode='min', period=1, prefix=strat)
 
         model = LightningReapp(default_config)
         trainer = lit.Trainer(
@@ -68,15 +60,11 @@ def kfold_train(k: int, ldhdata, strat, **trainer_kwargs) -> None:
             progress_bar_refresh_rate=30,
             max_epochs=max_epochs,
             terminate_on_nan=True,
-            num_sanity_val_steps= 2 if split == 0 else 0
             callbacks=[callback_checkpoint, early_stop_checkpoint],
             **trainer_kwargs)
         print(f"Training on split {i + 1}")
         trainer.fit(model, train_dl, val_dl)
-        all_metrics.append({
-            'metrics': trainer.logged_metrics,
-            'checkpoint': trainer.best_model_path
-        })
+        all_metrics.append(trainer.logged_metrics)
     return pd.DataFrame(all_metrics)
 
 # Cell
@@ -123,3 +111,4 @@ def train_tune(config, **tuner_kwargs):
 
 
 # tune.run(train_tune, config=default_tune_config, num_samples=2)
+

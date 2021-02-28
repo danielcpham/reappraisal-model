@@ -121,7 +121,7 @@ def kfold_train(k: int, ldhdata, strat, **trainer_kwargs) -> None:
             ckpt_path = split['checkpoint']
             filename = os.path.split(ckpt_path)[-1]
             
-            upload_result = upload_file(ckpt_path, 'ldhdata', f'{strat}/{split}-{str(today)}-{filename}')
+            upload_result = upload_file(ckpt_path, 'ldhdata', f'{strat}/{i}-{str(today)}-{filename}')
             print(f"Successful {filename} to s3: {upload_result}")
 
             row = {
@@ -133,8 +133,19 @@ def kfold_train(k: int, ldhdata, strat, **trainer_kwargs) -> None:
             }
             print(row)
             outputs.append(row)
-            
-    return outputs
+    import pandas as pd
+
+    df = pd.DataFrame(results)
+    df['r2score'] = df['r2score'].apply(lambda x: x.item())
+    df['explained_var'] = df['explained_var'].apply(lambda x: x.item())
+
+    report_path = os.path.join(tempdir, f'{strat}-{str(today)}-report.csv')
+    df.to_csv(report_path)
+    
+    upload_report = upload_file(results_path, 'ldhdata', f'{strat}/{str(today)}-report.csv')
+    print(f"Successful Uploading Report to s3: {upload_report}")
+    print(df.describe())
+    return df
 
 # Cell
 from functools import partial

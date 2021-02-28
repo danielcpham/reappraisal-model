@@ -89,8 +89,8 @@ class LightningReapp(lit.LightningModule):
 
         # calculate spearman's r and pearson's r
         self.log("val_loss", avg_loss)
-        self.log('r2score', r2score)
-        self.log('explained_var', explained_var)
+        self.log('r2score', r2score.item())
+        self.log('explained_var', explained_var.item())
 
 
     # TESTING LOOP

@@ -153,7 +153,6 @@ def _expand_response(input_response: str) -> List[str]:
     sentences = sent_tokenize(input_response)
     return sentences
 
-
 # Cell
 DEFAULT_TOKENIZER = AutoTokenizer.from_pretrained(
     "distilbert-base-uncased-finetuned-sst-2-english", use_fast=True

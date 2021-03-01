@@ -32,15 +32,13 @@ def kfold_train(k: int, ldhdata, strat, **trainer_kwargs) -> None:
         ldhdata : See `reappraisalmodel.ldhdata.LDHDataModule`
     """
     all_metrics = []
-
-
-    
     
     max_epochs = trainer_kwargs.pop('max_epochs', 20)
     gpus = trainer_kwargs.pop('gpus', 1 if torch.cuda.is_available() else None)
 
     today = datetime.datetime.today().strftime('%Y%m%d_%H%M%S')
 
+    #Create temporary data to store checkpoint files.
     with tempfile.TemporaryDirectory() as tempdir:
         print(f'Created temporary directory: {tempdir}')
 

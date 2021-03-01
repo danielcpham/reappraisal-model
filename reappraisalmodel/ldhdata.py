@@ -179,7 +179,6 @@ class LDHDataModule(lit.LightningDataModule):
         self.train_data = self.load_training_data(data, force_reload)
         if self.kfolds == 1:
             # If we only want 1 fold, do an 80:20 split
-            
             self.indices = np.arange(len(self.train_data))
             np.random.shuffle(self.indices)
             self.splits = [train_test_split(self.indices, test_size=0.2)]

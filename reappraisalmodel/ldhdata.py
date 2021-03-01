@@ -16,7 +16,7 @@ from transformers import AutoTokenizer
 from pathlib import Path
 
 from nltk.tokenize import sent_tokenize
-from sklearn.model_selection import GroupKFold
+from sklearn.model_selection import GroupKFold, train_test_split
 from torch.utils.data import DataLoader
 from torch.utils.data.dataset import Subset
 
@@ -165,7 +165,7 @@ class LDHDataModule(lit.LightningDataModule):
         batch_size=16,
         tokenizer=DEFAULT_TOKENIZER,
         strat="obj",
-        kfolds=5,
+        kfolds=1,
         force_reload=False,
     ):
         super().__init__()
@@ -177,12 +177,19 @@ class LDHDataModule(lit.LightningDataModule):
         data = LDHData(data_dir)
 
         self.train_data = self.load_training_data(data, force_reload)
-        self.indices = (
-            self.assign_groups()
-        )  # Get an array of groups assigned for each data point
-        self.splits = self.generate_splits(
-            self.indices
-        )  # Use GroupKFold to generate specific splits
+        if self.kfolds == 1:
+            # If we only want 1 fold, do an 80:20 split
+            
+            self.indices = np.arange(len(self.train_data))
+            np.random.shuffle(self.indices)
+            self.splits = [train_test_split(self.indices, test_size=0.2)]
+        else:
+            self.indices = (
+                self.assign_groups()
+            )  # Get an array of groups assigned for each data point
+            self.splits = self.generate_splits(
+                self.indices
+            )  # Use GroupKFold to generate specific splits
         self.eval_data = self.load_eval_data(data, force_reload)
 
     def load_training_data(self, data: LDHData, force_reload):
@@ -235,6 +242,8 @@ class LDHDataModule(lit.LightningDataModule):
         return indices
 
     def generate_splits(self, indices):
+        """Return a
+        """
         cv = GroupKFold(self.kfolds)
         splits = list(cv.split(self.train_data, groups=indices))
         return splits

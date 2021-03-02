@@ -109,7 +109,6 @@ class LightningReapp(lit.LightningModule):
             pickle.dump(dfs, f)
 
 
-# export
 def get_avg_masked_encoding(state: torch.Tensor, attention_mask: torch.Tensor):
     """[summary]
     For B = batch size, L = encoding length, F = feature vector:

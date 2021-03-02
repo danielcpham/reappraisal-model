@@ -6,7 +6,7 @@ __all__ = ['LDHData', 'LDHDataModule', 'DEFAULT_TOKENIZER']
 # export
 import os
 from collections import defaultdict
-from typing import Dict, List, Tuple
+from typing import Dict, List
 
 import numpy as np
 import pandas as pd
@@ -16,7 +16,7 @@ from transformers import AutoTokenizer
 from pathlib import Path
 
 from nltk.tokenize import sent_tokenize
-from sklearn.model_selection import GroupKFold, train_test_split
+from sklearn.model_selection import GroupKFold
 from torch.utils.data import DataLoader
 from torch.utils.data.dataset import Subset
 
@@ -100,12 +100,15 @@ class LDHData:
         expanded_df = expanded_df[expanded_df["split_response"] != "."].reset_index(
             drop=True
         )
+#         assert expanded_df.apply(pd.unique)["daycode"].size == 5
+#         assert expanded_df.apply(pd.unique)["Condition"].size == 3
         expanded_df.rename(columns={"split_response": "response"}, inplace=True)
         return expanded_df
 
     # Functions to read the data files directly
     def _parse_training_data(self, train_data_dir: str) -> Dict[str, pd.DataFrame]:
-        study1 = pd.read_csv(Path(train_data_dir, "Master_Final_TrainingData.csv"), usecols = ['Text Response', "AVG_OBJ", "AVG_FAR"])
+        study1 = pd.read_csv(Path(train_data_dir, "Master_Final_TrainingData.csv", usecols = ['Text Response', "AVG_OBJ", "AVG_FAR"]))
+
         study1far = study1.rename(columns={
             'Text Response': 'response',
             'AVG_FAR': 'score'
@@ -115,7 +118,6 @@ class LDHData:
             'Text Response': 'response',
             'AVG_OBJ': 'score'
         }).drop(columns='AVG_FAR')
-
 
         return {
             'far': study1far,
@@ -146,6 +148,7 @@ class LDHData:
         }
 
 
+#
 def _expand_response(input_response: str) -> List[str]:
     sentences = sent_tokenize(input_response)
     return sentences
@@ -162,30 +165,31 @@ class LDHDataModule(lit.LightningDataModule):
         batch_size=16,
         tokenizer=DEFAULT_TOKENIZER,
         strat="obj",
-        kfolds=1,
+        kfolds=5,
+        force_reload=False,
     ):
         super().__init__()
-        self.data = LDHData(data_dir)
         self.strat = strat
         self.batch_size = batch_size
         self.tokenizer = tokenizer
         self.kfolds = kfolds
         self.current_split = 0
-        self.train_data = None
-        self.eval_data = None
-        self.splits = []
+        data = LDHData(data_dir)
 
-        # self.load_training_data(data, force_reload)
-        # self.load_eval_data(data, force_reload)
-        # self.splits = self.generate_splits(self.kfolds)
+        self.train_data = self.load_training_data(data, force_reload)
+        self.indices = (
+            self.assign_groups()
+        )  # Get an array of groups assigned for each data point
+        self.splits = self.generate_splits(
+            self.indices
+        )  # Use GroupKFold to generate specific splits
+        self.eval_data = self.load_eval_data(data, force_reload)
 
-    def get_train_data(self, encoded=False):
-        if not self.train_data:
-            raise Exception("Please load the training data first!")
-        if not encoded:
-            return self.train_data[self.strat]
-        print("Encoding Training Data:")
-        encoded_ds = self.train_data[self.strat].map(
+    def load_training_data(self, data: LDHData, force_reload):
+        data.load_training_data(force_reload)
+        train_data: Dataset = data.train_dataset[self.strat]
+        print("Encoding Train Data:")
+        encoded_ds = train_data.map(
             lambda ds: self.tokenizer(
                 ds["response"],
                 add_special_tokens=True,
@@ -199,14 +203,11 @@ class LDHDataModule(lit.LightningDataModule):
         )
         return encoded_ds
 
-    def get_train_encoding(self):
-        return self.get_train_data(True)
-
-    def get_eval_data(self, encoded=False):
-        if not encoded:
-            return self.eval_data[self.strat]
-        print("Encoding Test Data")
-        encoded_ds = self.eval_data[self.strat].map(
+    def load_eval_data(self, data: LDHData, force_reload):
+        data.load_eval_data(force_reload)
+        eval_data: Dataset = data.eval_dataset[self.strat]
+        print("Encoding Test Data:")
+        encoded_ds = eval_data.map(
             lambda ds: self.tokenizer(
                 ds["response"],
                 add_special_tokens=True,
@@ -218,37 +219,24 @@ class LDHDataModule(lit.LightningDataModule):
         encoded_ds.set_format(
             type="torch",
             columns=["input_ids", "attention_mask"],
+            output_all_columns=False,
         )
         return encoded_ds
 
-    def get_eval_encoding(self):
-        return self.get_eval_data(True)
-
-    def load_train_data(self, force_reload=False):
-        self.data.load_training_data(force_reload)
-        self.train_data: Dataset = self.data.train_dataset
-        self.splits = self.generate_splits(self.kfolds)
-
-    def load_eval_data(self, force_reload=False):
-        self.data.load_eval_data(force_reload)
-        self.eval_data: Dataset = self.data.eval_dataset
-
-    def generate_splits(self, num_groups=1)-> List[Tuple[int, int]]:
-        """Generates splits of training data.
-        Args:
-            num_groups (int, optional): [description]. Defaults to 1.
+    def assign_groups(self):
+        """Assign each datapoint to a group for later kfold validation
 
         Returns:
-            List[Tuple[int, int]]: [description]
+            [type]: [description]
         """
-        train_data = self.train_data[self.strat]
-        indices = np.arange(len(train_data))
-        indices = indices % num_groups
+        indices = np.arange(len(self.train_data))
+        indices = indices % self.kfolds
         np.random.shuffle(indices)
-        if num_groups == 1:
-            return [train_test_split(indices, test_size=0.15)]
-        cv = GroupKFold(num_groups)
-        splits = list(cv.split(train_data, groups=indices))
+        return indices
+
+    def generate_splits(self, indices):
+        cv = GroupKFold(self.kfolds)
+        splits = list(cv.split(self.train_data, groups=indices))
         return splits
 
     def get_train_dataloader(self, split: int):

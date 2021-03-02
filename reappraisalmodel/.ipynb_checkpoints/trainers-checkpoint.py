@@ -32,13 +32,15 @@ def kfold_train(k: int, ldhdata, strat, **trainer_kwargs) -> None:
         ldhdata : See `reappraisalmodel.ldhdata.LDHDataModule`
     """
     all_metrics = []
+
+
+    
     
     max_epochs = trainer_kwargs.pop('max_epochs', 20)
     gpus = trainer_kwargs.pop('gpus', 1 if torch.cuda.is_available() else None)
 
     today = datetime.datetime.today().strftime('%Y%m%d_%H%M%S')
 
-    #Create temporary data to store checkpoint files.
     with tempfile.TemporaryDirectory() as tempdir:
         print(f'Created temporary directory: {tempdir}')
 
@@ -119,7 +121,7 @@ def kfold_train(k: int, ldhdata, strat, **trainer_kwargs) -> None:
             ckpt_path = split['checkpoint']
             filename = os.path.split(ckpt_path)[-1]
             
-            upload_result = upload_file(ckpt_path, 'ldhdata', f'{strat}/{i}-{str(today)}-{filename}')
+            upload_result = upload_file(ckpt_path, 'ldhdata', f'{strat}/{split}-{str(today)}-{filename}')
             print(f"Successful {filename} to s3: {upload_result}")
 
             row = {
@@ -131,19 +133,8 @@ def kfold_train(k: int, ldhdata, strat, **trainer_kwargs) -> None:
             }
             print(row)
             outputs.append(row)
-    import pandas as pd
-
-    df = pd.DataFrame(results)
-    df['r2score'] = df['r2score'].apply(lambda x: x.item())
-    df['explained_var'] = df['explained_var'].apply(lambda x: x.item())
-
-    report_path = os.path.join(tempdir, f'{strat}-{str(today)}-report.csv')
-    df.to_csv(report_path)
-    
-    upload_report = upload_file(results_path, 'ldhdata', f'{strat}/{str(today)}-report.csv')
-    print(f"Successful Uploading Report to s3: {upload_report}")
-    print(df.describe())
-    return df
+            
+    return outputs
 
 # Cell
 from functools import partial

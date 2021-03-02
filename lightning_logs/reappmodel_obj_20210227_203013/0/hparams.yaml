@@ -1,0 +1,4 @@
+config:
+  hidden_layer_size: 50
+  lr: 0.001
+pretrained_model_name: distilbert-base-uncased-finetuned-sst-2-english

@@ -13,7 +13,8 @@ index = {"LDHData": "LDHData.ipynb",
          "train_tune": "Trainers.ipynb",
          "parser": "Trainers.ipynb",
          "callback_tuner": "Trainers.ipynb",
-         "default_tune_config": "Trainers.ipynb"}
+         "default_tune_config": "Trainers.ipynb",
+         "upload_file": "Trainers.ipynb"}
 
 modules = ["ldhdata.py",
            "lightningreapp.py",

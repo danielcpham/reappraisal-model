@@ -1,25 +1,15 @@
-# Don't track content of these folders
-**/.vscode/**
-**/.vs/**
-output/**
-**/__pycache__/**
-**/ipynb_checkpoints/**
-input/data/Participant Tracked Data 
-input/data/Text Excerpts
-input/Text Excerpts.zip
-input/deprecate
-input/test
-input/training
-**.ipynb
+__pycache__/*
 .DS_Store
 
+.coverage
 
+.pytest_cache/*
+.vscode/*
 
+*/__pycache__/*
 
-LDH_Task_LD_LF_121219_process.ipynb
-LDH_Task_LD_LF_121219.xlsx
-output.zip
-processed_LDH_121219.csv
-test_set.csv
-test_notes_0304.txt
-Pipfile.lock
+cache-*
+
+output/*
+lightning_logs*/*
+

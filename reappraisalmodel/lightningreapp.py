@@ -4,8 +4,6 @@ __all__ = ['LightningReapp', 'get_avg_masked_encoding', 'default_model_name']
 
 # Cell
 import pickle
-import path
-
 import pandas as pd
 import pytorch_lightning as lit
 import torch
@@ -84,16 +82,10 @@ class LightningReapp(lit.LightningModule):
         }
 
     def validation_epoch_end(self, outputs):
-<<<<<<< HEAD
-        avg_loss = torch.stack([x["loss"] for x in outputs]).mean()
-        # observed = torch.stack([x["observed"] for x in outputs])
-        # expected = torch.stack([x["expected"] for x in outputs])
-=======
         avg_loss = torch.stack([x["val_loss"] for x in outputs]).mean()
         r2score = torch.stack([x["r2score"] for x in outputs]).mean()
         explained_var = torch.stack([x["explained_var"] for x in outputs]).mean()
 
->>>>>>> add-metrics
         # calculate spearman's r and pearson's r
         self.log("val_loss", avg_loss)
         self.log('r2score', r2score.item())
@@ -117,8 +109,6 @@ class LightningReapp(lit.LightningModule):
             pickle.dump(dfs, f)
 
 
-
-# export
 def get_avg_masked_encoding(state: torch.Tensor, attention_mask: torch.Tensor):
     """[summary]
     For B = batch size, L = encoding length, F = feature vector:

@@ -10,15 +10,13 @@ index = {"LDHData": "LDHData.ipynb",
          "default_model_name": "LightningReapp.ipynb",
          "kfold_train": "Trainers.ipynb",
          "default_config": "Trainers.ipynb",
-         "train_tune": "Trainers.ipynb",
-         "parser": "Trainers.ipynb",
-         "callback_tuner": "Trainers.ipynb",
-         "default_tune_config": "Trainers.ipynb",
-         "upload_file": "Trainers.ipynb"}
+         "upload_file": "utils.ipynb",
+         "download_file": "utils.ipynb"}
 
 modules = ["ldhdata.py",
            "lightningreapp.py",
-           "trainers.py"]
+           "trainers.py",
+           "utils.py"]
 
 doc_url = "https://danielcpham.github.io/reappraisalmodel/"
 

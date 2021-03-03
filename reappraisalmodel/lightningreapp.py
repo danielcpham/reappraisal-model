@@ -19,33 +19,44 @@ class LightningReapp(lit.LightningModule):
     def __init__(self, config, pretrained_model_name=default_model_name):
         super().__init__()
 
-        self.lr = config["lr"]
-        self.hidden_layer_size = config["hidden_layer_size"]
+        # Set model hyperparams
+        self.lr = config.get("lr", 1e-3)
+        self.num_embedding_layers = config.get('num_embedding_layers', 1)
         self.save_hyperparameters()
 
         # Initialize a pretrained model
-        self.bert = AutoModel.from_pretrained(pretrained_model_name)
+        self.bert = AutoModel.from_pretrained(
+            pretrained_model_name,
+            output_hidden_states = True
+        )
+
+        self.feature_dim = self.bert.config.dim
 
         # Turn off autograd for bert encoder
-        for param in self.bert.parameters():
+        for param in self.bert[:-self.num_embedding_layers].parameters():
             param.requires_grad = False
 
-        self.classifier = nn.Sequential(
-            nn.Linear(768, self.hidden_layer_size),
-            nn.ReLU(),
-            nn.Linear(self.hidden_layer_size, 7),
+        self.distance_scorer = nn.Sequential(
+            nn.Linear(self.feature_dim * self.num_embedding_layers, self.feature_dim),
+            nn.Linear(self.feature_dim, 1),
             nn.ReLU(),
         )
+
+        self.pooler = nn.AdaptiveAvgPool1d(1)
+
+
 
         # define metrics
         self.train_loss = lit.metrics.MeanSquaredError()
         self.val_loss = lit.metrics.MeanSquaredError()
 
     def forward(self, input_ids, attention_mask):
-        output = self.bert(input_ids, attention_mask)
-        last_hidden_state = output.last_hidden_state
-        avg = get_avg_masked_encoding(last_hidden_state, attention_mask)
-        out = self.classifier(avg).squeeze()
+        output = self.bert(input_ids, attention_mask, output_hidden_states=True)
+        last_hidden_states = output.hidden_states[-self.num_embedded_layers:]
+        states_combined = torch.cat(last_hidden_states, dim=2)
+        avg = self.pooler(states_combined.permute(0,2,1).squeeze())
+        # avg = get_avg_masked_encoding(last_hidden_state, attention_mask)
+        out = self.distance_scorer(avg).squeeze()
         return out
 
     def configure_optimizers(self):

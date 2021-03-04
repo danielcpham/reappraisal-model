@@ -41,12 +41,11 @@ def download_file(bucket, object_name, file_name=None):
 
     if file_name is None:
         file_name = object_name
-
     # Upload the file
     s3_client = boto3.client('s3')
     try:
         response = s3_client.download_file(bucket, object_name, file_name)
+        print(f"Downloaded file: {object_name} ({bucket})")
     except ClientError as e:
         logging.error(e)
-        return False
-    return True
+    return response

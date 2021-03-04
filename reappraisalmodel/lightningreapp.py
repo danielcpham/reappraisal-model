@@ -33,7 +33,7 @@ class LightningReapp(lit.LightningModule):
         self.feature_dim = self.bert.config.dim
 
         # Turn off autograd for bert encoder
-        for param in self.bert[:-self.num_embedding_layers].parameters():
+        for param in self.bert.transformer.layer[:-self.num_embedding_layers].parameters():
             param.requires_grad = False
 
         self.distance_scorer = nn.Sequential(
@@ -52,10 +52,9 @@ class LightningReapp(lit.LightningModule):
 
     def forward(self, input_ids, attention_mask):
         output = self.bert(input_ids, attention_mask, output_hidden_states=True)
-        last_hidden_states = output.hidden_states[-self.num_embedded_layers:]
+        last_hidden_states = output.hidden_states[-self.num_embedding_layers:]
         states_combined = torch.cat(last_hidden_states, dim=2)
-        avg = self.pooler(states_combined.permute(0,2,1).squeeze())
-        # avg = get_avg_masked_encoding(last_hidden_state, attention_mask)
+        avg = self.pooler(states_combined.permute(0,2,1)).squeeze()
         out = self.distance_scorer(avg).squeeze()
         return out
 
@@ -70,7 +69,7 @@ class LightningReapp(lit.LightningModule):
         score = batch["score"]
         # Compute the loss
         output = self(input_ids, attention_mask)
-        loss = self.train_loss(output.sum(dim=1), score)
+        loss = self.train_loss(output, score)
         self.log("train_loss", loss)
         return {"loss": loss}
 
@@ -84,7 +83,7 @@ class LightningReapp(lit.LightningModule):
         attention_mask = batch["attention_mask"]
         expected = batch["score"]
         output = self(input_ids, attention_mask)
-        observed = output.sum(dim=1)
+        observed = output
         loss = self.val_loss(observed, expected)
         return {
             "val_loss": loss,
@@ -109,7 +108,7 @@ class LightningReapp(lit.LightningModule):
         attention_mask = batch["attention_mask"]
         output = self(input_ids, attention_mask)
         # Eval step
-        return {"predict": (batch_idx, output.sum(dim=1))}
+        return {"predict": (batch_idx, output)}
 
     def test_epoch_end(self, outputs):
         dfs = []

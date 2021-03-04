@@ -22,6 +22,7 @@ class LightningReapp(lit.LightningModule):
         # Set model hyperparams
         self.lr = config.get("lr", 1e-3)
         self.num_embedding_layers = config.get('num_embedding_layers', 1)
+        self.batch_size=config.get('batch_size', 64)
         self.save_hyperparameters()
 
         # Initialize a pretrained model
@@ -70,12 +71,10 @@ class LightningReapp(lit.LightningModule):
         # Compute the loss
         output = self(input_ids, attention_mask)
         loss = self.train_loss(output, score)
-        self.log("train_loss", loss)
-        return {"loss": loss}
-
-    def training_epoch_end(self, outputs):
-        avg_loss = torch.stack([x["loss"] for x in outputs]).mean()
-        self.log("train_loss", avg_loss)
+        self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True)
+        return {
+            'loss': loss
+        }
 
     # VALIDATION LOOP
     def validation_step(self, batch, batch_idx):
@@ -85,21 +84,23 @@ class LightningReapp(lit.LightningModule):
         output = self(input_ids, attention_mask)
         observed = output
         loss = self.val_loss(observed, expected)
-        return {
-            "val_loss": loss,
+        self.log_dict({
+             "val_loss": loss,
             'r2score': r2score(observed, expected),
             'explained_var': explained_variance(observed, expected)
-        }
+        }, prog_bar=True)
 
-    def validation_epoch_end(self, outputs):
-        avg_loss = torch.stack([x["val_loss"] for x in outputs]).mean()
-        r2score = torch.stack([x["r2score"] for x in outputs]).mean()
-        explained_var = torch.stack([x["explained_var"] for x in outputs]).mean()
 
-        # calculate spearman's r and pearson's r
-        self.log("val_loss", avg_loss)
-        self.log('r2score', r2score.item())
-        self.log('explained_var', explained_var.item())
+
+#     def validation_epoch_end(self, outputs):
+#         avg_loss = torch.stack([x["val_loss"] for x in outputs]).mean()
+#         r2score = torch.stack([x["r2score"] for x in outputs]).mean()
+#         explained_var = torch.stack([x["explained_var"] for x in outputs]).mean()
+
+#         # calculate spearman's r and pearson's r
+#         self.log("val_loss", avg_loss)
+#         self.log('r2score', r2score.item())
+#         self.log('explained_var', explained_var.item())
 
 
     # TESTING LOOP

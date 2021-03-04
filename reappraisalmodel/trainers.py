@@ -3,15 +3,11 @@
 __all__ = []
 
 # Cell
-%load_ext autoreload
-#default_exp trainers
 #export
 import datetime
 import logging
 import os
 import tempfile
-from os.path import dirname
-
 import torch
 import pandas as pd
 import pytorch_lightning as lit
@@ -23,6 +19,8 @@ from .lightningreapp import LightningReapp
 from .utils import upload_file
 
 # Internal Cell
+
+#exporti
 default_config = {
     'lr': 1e-3,
     'hidden_layer_size': 50
@@ -88,8 +86,7 @@ def kfold_train(k: int, ldhdata, strat, s3_bucket=None, **trainer_kwargs) -> Non
                 filename= f'{split}_'+'{epoch:02d}-{val_loss:.02f}',
                 verbose=False,
                 save_last=False,
-                save_top_k=1,
-                save_weights_only=False,
+                save_top_k=2,
             )
 
             model = LightningReapp(default_config)
@@ -113,29 +110,34 @@ def kfold_train(k: int, ldhdata, strat, s3_bucket=None, **trainer_kwargs) -> Non
 
         outputs = []
         for split in all_metrics:
+            print(split)
             val_loss = split['metrics']['val_loss'].item()
-            train_loss = split['metrics']['train_loss'].item()
+            train_loss_step = split['metrics']['train_loss_step'].item()
+            train_loss_epoch = split['metrics']['train_loss_epoch'].item()
             num_epochs = split['num_epochs']
-            r2score = split['metrics']['r2score']
+            rscore = split['metrics']['pearson-r-score']
             explained_variance = split['metrics']['explained_var']
 
-            ckpt_path = split['checkpoint']
-            filename = os.path.split(ckpt_path)[-1]
+            if s3_bucket is not None:
 
-            upload_result = upload_file(ckpt_path, 'ldhdata', f'{strat}/{i}-{str(today)}-{filename}')
-            print(f"Successful {filename} to s3: {upload_result}")
+
+                ckpt_path = split['checkpoint']
+                filename = os.path.split(ckpt_path)[-1]
+                upload_result = upload_file(ckpt_path, 'ldhdata', f'{strat}/{i}-{str(today)}-{filename}')
+                print(f"Successful {filename} to s3: {upload_result}")
 
             row = {
                 'val_loss': val_loss,
-                'train_loss': train_loss,
+                'train_loss_step': train_loss_step,
+                'train_loss_epoch': train_loss_epoch,
                 'num_epochs': num_epochs,
-                'r2score': r2score,
+                'pearson-r-score': rscore,
                 'explained_var': explained_variance
             }
             print(row)
             outputs.append(row)
         df = pd.DataFrame(outputs)
-        df['r2score'] = df['r2score'].apply(lambda x: x.item())
+        df['pearson-r-score'] = df['pearson-r-score'].apply(lambda x: x.item())
         df['explained_var'] = df['explained_var'].apply(lambda x: x.item())
 
         report_name = f'{str(today)}-report.csv'

@@ -5,6 +5,7 @@ __all__ = ['LightningReapp', 'get_avg_masked_encoding', 'default_model_name']
 # Cell
 import pickle
 import pandas as pd
+import numpy as np
 import pytorch_lightning as lit
 import torch
 from pytorch_lightning.metrics.functional import r2score, explained_variance
@@ -109,15 +110,17 @@ class LightningReapp(lit.LightningModule):
         attention_mask = batch["attention_mask"]
         output = self(input_ids, attention_mask)
         # Eval step
-        return {"predict": (batch_idx, output)}
-
+        return {
+            'prediction': output,
+        }
+    
     def test_epoch_end(self, outputs):
-        dfs = []
-        for output in outputs:
-            batch_idx, result = output['predict']
-            dfs.append((batch_idx, result.cpu().tolist()))
-        with open(f"./output_reapp.pkl", 'wb+') as f:
-            pickle.dump(dfs, f)
+        outs = np.concatenate([o['prediction'].cpu().numpy() for o in outputs])
+        df = pd.DataFrame({
+            'observed': outs
+        })
+        df.to_csv('../output/predictions.csv')
+
 
 
 def get_avg_masked_encoding(state: torch.Tensor, attention_mask: torch.Tensor):

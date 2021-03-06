@@ -4,8 +4,8 @@ __all__ = ['LightningReapp', 'get_avg_masked_encoding', 'default_model_name']
 
 # Cell
 import pickle
-
 import pandas as pd
+import numpy as np
 import pytorch_lightning as lit
 import torch
 from pytorch_lightning.metrics.functional import r2score, explained_variance
@@ -20,33 +20,44 @@ class LightningReapp(lit.LightningModule):
     def __init__(self, config, pretrained_model_name=default_model_name):
         super().__init__()
 
-        self.lr = config["lr"]
-        self.hidden_layer_size = config["hidden_layer_size"]
+        # Set model hyperparams
+        self.lr = config.get("lr", 1e-3)
+        self.num_embedding_layers = config.get('num_embedding_layers', 1)
+        self.batch_size=config.get('batch_size', 64)
         self.save_hyperparameters()
 
         # Initialize a pretrained model
-        self.bert = AutoModel.from_pretrained(pretrained_model_name)
+        self.bert = AutoModel.from_pretrained(
+            pretrained_model_name,
+            output_hidden_states = True
+        )
+
+        self.feature_dim = self.bert.config.dim
 
         # Turn off autograd for bert encoder
-        for param in self.bert.parameters():
+        for param in self.bert.transformer.layer[:-self.num_embedding_layers].parameters():
             param.requires_grad = False
 
-        self.classifier = nn.Sequential(
-            nn.Linear(768, self.hidden_layer_size),
-            nn.ReLU(),
-            nn.Linear(self.hidden_layer_size, 7),
+        self.distance_scorer = nn.Sequential(
+            nn.Linear(self.feature_dim * self.num_embedding_layers, self.feature_dim),
+            nn.Linear(self.feature_dim, 1),
             nn.ReLU(),
         )
+
+        self.pooler = nn.AdaptiveAvgPool1d(1)
+
+
 
         # define metrics
         self.train_loss = lit.metrics.MeanSquaredError()
         self.val_loss = lit.metrics.MeanSquaredError()
 
     def forward(self, input_ids, attention_mask):
-        output = self.bert(input_ids, attention_mask)
-        last_hidden_state = output.last_hidden_state
-        avg = get_avg_masked_encoding(last_hidden_state, attention_mask)
-        out = self.classifier(avg).squeeze()
+        output = self.bert(input_ids, attention_mask, output_hidden_states=True)
+        last_hidden_states = output.hidden_states[-self.num_embedding_layers:]
+        states_combined = torch.cat(last_hidden_states, dim=2)
+        avg = self.pooler(states_combined.permute(0,2,1)).squeeze()
+        out = self.distance_scorer(avg).squeeze()
         return out
 
     def configure_optimizers(self):
@@ -60,13 +71,11 @@ class LightningReapp(lit.LightningModule):
         score = batch["score"]
         # Compute the loss
         output = self(input_ids, attention_mask)
-        loss = self.train_loss(output.sum(dim=1), score)
-        self.log("train_loss", loss)
-        return {"loss": loss}
-
-    def training_epoch_end(self, outputs):
-        avg_loss = torch.stack([x["loss"] for x in outputs]).mean()
-        self.log("train_loss", avg_loss)
+        loss = self.train_loss(output, score)
+        self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True)
+        return {
+            'loss': loss
+        }
 
     # VALIDATION LOOP
     def validation_step(self, batch, batch_idx):
@@ -74,23 +83,25 @@ class LightningReapp(lit.LightningModule):
         attention_mask = batch["attention_mask"]
         expected = batch["score"]
         output = self(input_ids, attention_mask)
-        observed = output.sum(dim=1)
+        observed = output
         loss = self.val_loss(observed, expected)
-        return {
-            "val_loss": loss,
+        self.log_dict({
+             "val_loss": loss,
             'r2score': r2score(observed, expected),
             'explained_var': explained_variance(observed, expected)
-        }
+        }, prog_bar=True)
 
-    def validation_epoch_end(self, outputs):
-        avg_loss = torch.stack([x["val_loss"] for x in outputs]).mean()
-        r2score = torch.stack([x["r2score"] for x in outputs]).mean()
-        explained_var = torch.stack([x["explained_var"] for x in outputs]).mean()
 
-        # calculate spearman's r and pearson's r
-        self.log("val_loss", avg_loss)
-        self.log('r2score', r2score)
-        self.log('explained_var', explained_var)
+
+#     def validation_epoch_end(self, outputs):
+#         avg_loss = torch.stack([x["val_loss"] for x in outputs]).mean()
+#         r2score = torch.stack([x["r2score"] for x in outputs]).mean()
+#         explained_var = torch.stack([x["explained_var"] for x in outputs]).mean()
+
+#         # calculate spearman's r and pearson's r
+#         self.log("val_loss", avg_loss)
+#         self.log('r2score', r2score.item())
+#         self.log('explained_var', explained_var.item())
 
 
     # TESTING LOOP
@@ -99,19 +110,19 @@ class LightningReapp(lit.LightningModule):
         attention_mask = batch["attention_mask"]
         output = self(input_ids, attention_mask)
         # Eval step
-        return {"predict": (batch_idx, output.sum(dim=1))}
-
+        return {
+            'prediction': output,
+        }
+    
     def test_epoch_end(self, outputs):
-        dfs = []
-        for output in outputs:
-            batch_idx, result = output['predict']
-            dfs.append((batch_idx, result.cpu().tolist()))
-        with open(f"./output_reapp.pkl", 'wb+') as f:
-            pickle.dump(dfs, f)
+        outs = np.concatenate([o['prediction'].cpu().numpy() for o in outputs])
+        df = pd.DataFrame({
+            'observed': outs
+        })
+        df.to_csv('../output/predictions.csv')
 
 
 
-# export
 def get_avg_masked_encoding(state: torch.Tensor, attention_mask: torch.Tensor):
     """[summary]
     For B = batch size, L = encoding length, F = feature vector:

@@ -10,17 +10,18 @@ import torch
 from pytorch_lightning.metrics.functional import r2score, explained_variance
 from torch import nn, optim
 from torch.nn import functional as F
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 from transformers import AutoModel
 
 default_model_name = "distilbert-base-uncased-finetuned-sst-2-english"
 
 
 class LightningReapp(lit.LightningModule):
-    def __init__(self, config, pretrained_model_name=default_model_name):
+    def __init__(self, config={}, pretrained_model_name=default_model_name):
         super().__init__()
 
-        self.lr = config["lr"]
-        self.hidden_layer_size = config["hidden_layer_size"]
+        self.lr = config.get('lr', 1e-4)
+        self.hidden_layer_size = config.get('hidden_layer_size', 50)
         self.save_hyperparameters()
 
         # Initialize a pretrained model
@@ -40,6 +41,8 @@ class LightningReapp(lit.LightningModule):
         # define metrics
         self.train_loss = lit.metrics.MeanSquaredError()
         self.val_loss = lit.metrics.MeanSquaredError()
+        self.r2score = lit.metrics.R2Score()
+        self.explained_var = lit.metrics.ExplainedVariance()
 
     def forward(self, input_ids, attention_mask):
         output = self.bert(input_ids, attention_mask)
@@ -48,9 +51,20 @@ class LightningReapp(lit.LightningModule):
         out = self.classifier(avg).squeeze()
         return out
 
+
     def configure_optimizers(self):
-        optimizer = optim.Adam(self.parameters(), lr=self.lr)
-        return optimizer
+        """
+        Return whatever optimizers and learning rate schedulers you want here.
+        At least one optimizer is required.
+        """
+        optimizer = optim.AdamW(self.parameters(), lr=self.lr)
+        lr_scheduler = {
+            'optimizer': optimizer,
+            'scheduler': ReduceLROnPlateau(optimizer, mode='min'),
+                        'name': 'lr',
+                        "monitor": "val_loss",
+                        }
+        return lr_scheduler
 
     def training_step(self, batch, batch_idx):
         # destructure batch
@@ -60,12 +74,8 @@ class LightningReapp(lit.LightningModule):
         # Compute the loss
         output = self(input_ids, attention_mask)
         loss = self.train_loss(output.sum(dim=1), score)
-        self.log("train_loss", loss)
-        return {"loss": loss}
-
-    def training_epoch_end(self, outputs):
-        avg_loss = torch.stack([x["loss"] for x in outputs]).mean()
-        self.log("train_loss", avg_loss)
+        self.log("train_loss", loss, on_step=True, on_epoch=True)
+        return loss
 
     # VALIDATION LOOP
     def validation_step(self, batch, batch_idx):
@@ -74,25 +84,21 @@ class LightningReapp(lit.LightningModule):
         expected = batch["score"]
         output = self(input_ids, attention_mask)
         observed = output.sum(dim=1)
-        loss = self.val_loss(observed, expected)
         outputs = {
-            "val_loss": loss,
-            'r2score': r2score(observed, expected),
-            'explained_var': explained_variance(observed, expected)
+            "val_loss": self.val_loss(observed, expected),
+            'lr': self.lr,
+            'r2score': self.r2score(observed, expected),
+            'explained_var': self.explained_var(observed, expected)
         }
-        
         self.log_dict(outputs)
         return outputs
 
-#     def validation_epoch_end(self, outputs):
-#         avg_loss = torch.stack([x["val_loss"] for x in outputs]).mean()
-#         r2score = torch.stack([x["r2score"] for x in outputs]).mean()
-#         explained_var = torch.stack([x["explained_var"] for x in outputs]).mean()
-
-#         # calculate spearman's r and pearson's r
-#         self.log("val_loss", avg_loss)
-#         self.log('r2score', r2score)
-#         self.log('explained_var', explained_var)
+    def validation_epoch_end(self, outputs):
+        val_loss = self.val_loss.compute()
+        train_loss = self.train_loss.compute()
+        loss_distance = torch.abs(val_loss - train_loss)
+        self.log("loss_distance", loss_distance)
+        self.val_loss.reset()
 
 
     # TESTING LOOP

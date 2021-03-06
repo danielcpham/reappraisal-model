@@ -81,7 +81,7 @@ def kfold_train(k: int, ldhdata, strat, **trainer_kwargs) -> None:
                 monitor='val_loss',
                 mode='min',
                 dirpath=os.path.join(tempdir, name),
-                filename= f'{split}_'+'{epoch:02d}-{val_loss:.02f}',
+                filename= f'{i}_'+'{epoch:02d}-{val_loss:.02f}',
                 verbose=False,
                 save_last=False,
                 save_top_k=1,

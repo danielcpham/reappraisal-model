@@ -75,21 +75,24 @@ class LightningReapp(lit.LightningModule):
         output = self(input_ids, attention_mask)
         observed = output.sum(dim=1)
         loss = self.val_loss(observed, expected)
-        return {
+        outputs = {
             "val_loss": loss,
             'r2score': r2score(observed, expected),
             'explained_var': explained_variance(observed, expected)
         }
+        
+        self.log_dict(outputs)
+        return outputs
 
-    def validation_epoch_end(self, outputs):
-        avg_loss = torch.stack([x["val_loss"] for x in outputs]).mean()
-        r2score = torch.stack([x["r2score"] for x in outputs]).mean()
-        explained_var = torch.stack([x["explained_var"] for x in outputs]).mean()
+#     def validation_epoch_end(self, outputs):
+#         avg_loss = torch.stack([x["val_loss"] for x in outputs]).mean()
+#         r2score = torch.stack([x["r2score"] for x in outputs]).mean()
+#         explained_var = torch.stack([x["explained_var"] for x in outputs]).mean()
 
-        # calculate spearman's r and pearson's r
-        self.log("val_loss", avg_loss)
-        self.log('r2score', r2score.item())
-        self.log('explained_var', explained_var.item())
+#         # calculate spearman's r and pearson's r
+#         self.log("val_loss", avg_loss)
+#         self.log('r2score', r2score)
+#         self.log('explained_var', explained_var)
 
 
     # TESTING LOOP
@@ -98,15 +101,18 @@ class LightningReapp(lit.LightningModule):
         attention_mask = batch["attention_mask"]
         output = self(input_ids, attention_mask)
         # Eval step
-        return {"predict": (batch_idx, output.sum(dim=1))}
+        outputs = {"predict":output.sum(dim=1)}
+        self.log_dict(outputs)
+        return outputs 
 
-    def test_epoch_end(self, outputs):
-        dfs = []
-        for output in outputs:
-            batch_idx, result = output['predict']
-            dfs.append((batch_idx, result.cpu().tolist()))
-        with open(f"./output_reapp.pkl", 'wb+') as f:
-            pickle.dump(dfs, f)
+#     def test_epoch_end(self, outputs):
+# #         dfs = []
+# #         for output in outputs:
+# #             batch_idx, result = output['predict']
+# #             dfs.append((batch_idx, result.cpu().tolist()))
+# #         with open(f"./output_reapp.pkl", 'wb+') as f:
+# #             pickle.dump(dfs, f)
+#         return outputs
 
 
 def get_avg_masked_encoding(state: torch.Tensor, attention_mask: torch.Tensor):

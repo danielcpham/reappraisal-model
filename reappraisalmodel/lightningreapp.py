@@ -66,7 +66,7 @@ class LightningReapp(lit.LightningModule):
                         }
         return lr_scheduler
 
-    def training_step(self, batch, batch_idx):
+    def training_step(self, batch):
         # destructure batch
         input_ids = batch["input_ids"]
         attention_mask = batch["attention_mask"]
@@ -107,18 +107,17 @@ class LightningReapp(lit.LightningModule):
         attention_mask = batch["attention_mask"]
         output = self(input_ids, attention_mask)
         # Eval step
-        outputs = {"predict":output.sum(dim=1)}
-        self.log_dict(outputs)
-        return outputs 
+        pred = {
+            'predict': output.sum(dim=1)
+        }
+        return pred
 
-#     def test_epoch_end(self, outputs):
-# #         dfs = []
-# #         for output in outputs:
-# #             batch_idx, result = output['predict']
-# #             dfs.append((batch_idx, result.cpu().tolist()))
-# #         with open(f"./output_reapp.pkl", 'wb+') as f:
-# #             pickle.dump(dfs, f)
-#         return outputs
+    def test_epoch_end(self, outputs) -> None:
+        flatten = torch.cat([ batch['predict'] for batch in outputs])
+        output = flatten.detach().numpy()
+        self.log('prediction', output)
+        return output
+
 
 
 def get_avg_masked_encoding(state: torch.Tensor, attention_mask: torch.Tensor):

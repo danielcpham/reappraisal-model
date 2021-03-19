@@ -66,7 +66,7 @@ class LightningReapp(lit.LightningModule):
                         }
         return lr_scheduler
 
-    def training_step(self, batch):
+    def training_step(self, batch, batch_idx):
         # destructure batch
         input_ids = batch["input_ids"]
         attention_mask = batch["attention_mask"]
@@ -100,23 +100,6 @@ class LightningReapp(lit.LightningModule):
         self.log("loss_distance", loss_distance)
         self.val_loss.reset()
 
-
-    # TESTING LOOP
-    def test_step(self, batch, batch_idx):
-        input_ids = batch["input_ids"]
-        attention_mask = batch["attention_mask"]
-        output = self(input_ids, attention_mask)
-        # Eval step
-        pred = {
-            'predict': output.sum(dim=1)
-        }
-        return pred
-
-    def test_epoch_end(self, outputs) -> None:
-        flatten = torch.cat([ batch['predict'] for batch in outputs])
-        output = flatten.detach().numpy()
-        self.log('prediction', output)
-        return output
 
 
 

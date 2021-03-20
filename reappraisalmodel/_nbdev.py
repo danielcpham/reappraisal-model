@@ -9,7 +9,6 @@ index = {"LDHData": "LDHData.ipynb",
          "get_avg_masked_encoding": "LightningReapp.ipynb",
          "default_model_name": "LightningReapp.ipynb",
          "kfold_train": "Trainers.ipynb",
-         "default_config": "Trainers.ipynb",
          "upload_file": "utils.ipynb",
          "download_file": "utils.ipynb"}
 

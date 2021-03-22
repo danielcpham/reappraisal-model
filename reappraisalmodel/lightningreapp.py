@@ -3,13 +3,9 @@
 __all__ = ['LightningReapp', 'get_avg_masked_encoding', 'default_model_name']
 
 # Cell
-import pickle
-import pandas as pd
 import pytorch_lightning as lit
 import torch
-from pytorch_lightning.metrics.functional import r2score, explained_variance
 from torch import nn, optim
-from torch.nn import functional as F
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from transformers import AutoModel
 

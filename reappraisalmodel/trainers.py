@@ -4,15 +4,13 @@ __all__ = ['kfold_train']
 
 # Cell
 #export
-import datetime
-import logging
+
 import os
 import tempfile
+from datetime import datetime
 
 import torch
-import pandas as pd
 import pytorch_lightning as lit
-import wandb
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger, CSVLogger
 
@@ -21,57 +19,81 @@ from .lightningreapp import LightningReapp
 def kfold_train(k: int, ldhdata, strat, **trainer_kwargs) -> None:
     """Fits a LightningReapp instance with k-fold cross-validation.
     Args:
-        k (int):
+        k (int): number of splits training on.
         ldhdata : See `reappraisalmodel.ldhdata.LDHDataModule`
     """
     all_metrics = []
 
     max_epochs = trainer_kwargs.pop('max_epochs', 20)
-
-    today = datetime.datetime.today().strftime('%Y%m%d_%H%M%S')
-
-    #Create temporary data to store checkpoint files.
+    gpus = trainer_kwargs.pop('gpus', 1 if torch.cuda.is_available() else None)
+    today = datetime.today().strftime('%Y%m%d_%H%M%S')
+    # Create temporary data to store checkpoint files.
     with tempfile.TemporaryDirectory() as tempdir:
         print(f'Created temporary directory: {tempdir}')
 
         for i in range(k):
-            modelcheckpoint = ModelCheckpoint(
-                monitor='val_loss',
-                mode='min',
-                save_top_k=3,
-                verbose=True
-            )
-            # Model tracks the loss_distance; shows when training and validation loss begin to diverge
-            modelcheckpoint_loss_dist = ModelCheckpoint(
-                monitor='loss_distance',
-                mode='min',
-                save_top_k=3,
-                verbose=True
-            )
             # Select the dataloaders for the given split.
             split = i
             train_dl = ldhdata.get_train_dataloader(split)
             val_dl = ldhdata.get_val_dataloader(split)
 
-            session_version=f"reappmodel_{strat}_{today}"
+            save_dir='lightning_logs'
+            name=f"reappmodel_{strat}_{today}"
+            version=i
+            prefix=i
+
+            # Loggers
+            logger = TensorBoardLogger(
+                save_dir=save_dir,
+                name=name,
+                version=version,
+                prefix=prefix
+            )
+
+            csv_logger = CSVLogger(
+                save_dir=save_dir,
+                name=name,
+                version=version,
+                prefix=prefix
+            )
+
+            #Checkpoints
+            early_stop_checkpoint = EarlyStopping(
+                monitor='val_loss',
+                mode='min',
+                min_delta=0.001,
+                patience=3,
+                verbose=False
+            )
+
+            callback_checkpoint = ModelCheckpoint(
+                monitor='val_loss',
+                mode='min',
+                dirpath=os.path.join(tempdir, name),
+                filename= f'{i}_'+'{epoch:02d}-{val_loss:.02f}',
+                verbose=False,
+                save_last=False,
+                save_top_k=1,
+                save_weights_only=False,
+            )
 
             model = LightningReapp()
-            # Mark the start time of the training session.
-            tb_logger = TensorBoardLogger("lightning_logs", name="reapp_model", version=session_version)
             trainer = lit.Trainer(
-                logger = tb_logger,
-                precision=16 if torch.cuda.is_available() else 32, # We use 16-bit precision to reduce computational complexity
-                val_check_interval=0.25, # Check validation loss 4 times an epoch
-                callbacks=[modelcheckpoint, modelcheckpoint_loss_dist], # Register callbacks with trainer.
-                gpus=1 if torch.cuda.is_available() else None,
+                benchmark=True,
+                logger = [logger, csv_logger],
+                gpus = gpus,
+                gradient_clip_val=1.0,
+                max_epochs=max_epochs,
+                terminate_on_nan=True,
                 weights_summary=None,
-                max_epochs=max_epochs
-            )
+                precision=16,
+                callbacks=[callback_checkpoint, early_stop_checkpoint],
+                **trainer_kwargs)
             print(f"Training on split {i}")
             trainer.fit(model, train_dl, val_dl)
             all_metrics.append({
                 'metrics': trainer.logged_metrics,
-                'checkpoint': modelcheckpoint.best_model_path,
+                'checkpoint': callback_checkpoint.best_model_path,
                 'num_epochs': trainer.current_epoch
             })
 

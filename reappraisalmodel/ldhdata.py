@@ -105,7 +105,7 @@ class LDHData:
 
     # Functions to read the data files directly
     def _parse_training_data(self, train_data_dir: str) -> Dict[str, pd.DataFrame]:
-        study1 = pd.read_csv(Path(train_data_dir, "Master_Final_TrainingData.csv"), usecols = ['Text Response', "AVG_OBJ", "AVG_FAR"])
+        study1 = pd.read_csv(Path(train_data_dir, "StudyIData.csv"), usecols = ['Text Response', "AVG_OBJ", "AVG_FAR"])
         study1far = study1.rename(columns={
             'Text Response': 'response',
             'AVG_FAR': 'score'
@@ -133,10 +133,10 @@ class LDHData:
         """
         # Read the excel files
         eval_far_data = pd.read_excel(
-            os.path.join(eval_data_dir, "Alg_Far_NEW.xlsx"), engine="openpyxl"
+            os.path.join(eval_data_dir, "StudyIIFar.xlsx"), engine="openpyxl"
         ).rename(columns={"TextResponse": "response"})
         eval_obj_data = pd.read_excel(
-            os.path.join(eval_data_dir, "Alg_Obj_NEW.xlsx"), engine="openpyxl"
+            os.path.join(eval_data_dir, "StudyIIObj.xlsx"), engine="openpyxl"
         ).rename(columns={"TextResponse": "response"})
         eval_far_data = eval_far_data[eval_far_data["response"].notna()]
         eval_obj_data = eval_obj_data[eval_obj_data["response"].notna()]

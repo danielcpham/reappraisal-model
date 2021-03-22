@@ -1,0 +1,9 @@
+{
+  "reappraisalmodel": {
+    "Overview": "/",
+    "Title": "LDHData.html",
+    "Reappraisal Model": "LightningReapp.html",
+    "K-Fold Training and Cross-Validation": "Trainers.html",
+    "S3 Bucket Functions": "utils.html"
+  }
+}
